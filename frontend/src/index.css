@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap');
+@import "tailwindcss";
+
+/* ─── Design Tokens via Tailwind v4 @theme ──────────────────────────────── */
+@theme {
+  /* Colors – dark palette (CSS vars will be overridden for light) */
+  --color-bg: #09090B;
+  --color-sidebar: #111113;
+  --color-card: #18181B;
+  --color-border: #27272A;
+  --color-accent: #3B82F6;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+
+  /* Text colors */
+  --color-text-primary: #FAFAFA;
+  --color-text-secondary: #A1A1AA;
+  --color-text-muted: #71717A;
+
+  /* Border radius alias */
+  --radius-xl: 12px;
+
+  /* Font families */
+  --font-sans: 'Inter', 'Manrope', system-ui, sans-serif;
+  --font-heading: 'Geist', 'Inter', 'Manrope', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, Consolas, monospace;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.4), 0 1px 2px -1px rgba(0,0,0,0.4);
+  --shadow-card-hover: 0 4px 12px 0 rgba(0,0,0,0.5), 0 2px 6px -2px rgba(0,0,0,0.4);
+}
+
+/* ─── CSS Custom Properties (runtime, theme-switchable) ─────────────────── */
+:root {
+  /* Sidebar width — updated at runtime via JS when sidebar collapses/expands */
+  --sidebar-width: 208px;
+
+  /* Dark mode is default */
+  --bg: #09090B;
+  --sidebar: #111113;
+  --card: #18181B;
+  --border: #27272A;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --input-bg: #1C1C1F;
+  --input-border: #3F3F46;
+}
+
+/* Light mode overrides — derived properly, not inverted dark */
+[data-theme="light"] {
+  --bg: #FAFAFA;
+  --sidebar: #F4F4F5;
+  --card: #FFFFFF;
+  --border: #E4E4E7;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --text-primary: #09090B;
+  --text-secondary: #52525B;
+  --text-muted: #71717A;
+  --input-bg: #FFFFFF;
+  --input-border: #D4D4D8;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+[data-theme="light"] html,
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ─── Focus ring ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Animations ────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.3); }
+  50%       { box-shadow: 0 0 0 4px rgba(59,130,246,0); }
+}
+
+.animate-fade-in   { animation: fadeIn   0.22s ease-out forwards; }
+.animate-slide-left{ animation: slideLeft 0.2s  ease-out forwards; }
+.animate-scale-in  { animation: scaleIn  0.2s  ease-out forwards; }
+
+/* ─── Gradient text ─────────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Glow / glass utilities ────────────────────────────────────────────── */
+.glow-accent {
+  box-shadow: 0 0 24px -4px rgba(59,130,246,0.45);
+}
+.glass {
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+}
+
+/* ─── Dot-grid background (auth pages) ─────────────────────────────────── */
+.bg-dot-grid {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ─── Sidebar-aware layout helpers ─────────────────────────────────────── */
+/*
+  Updated at runtime via document.documentElement.style.setProperty(
+    '--sidebar-width', '56px' | '208px'
+  ) whenever the sidebar collapses/expands. The media query ensures no
+  offset is applied on mobile (sidebar is hidden there).
+*/
+@media (min-width: 768px) {
+  .topbar-push  { left: var(--sidebar-width) !important; }
+  .content-push { margin-left: var(--sidebar-width); }
+}
+
+/* ─── Nav active indicator ──────────────────────────────────────────────── */
+.nav-active-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(59,130,246,0.6);
+}

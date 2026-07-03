@@ -1,0 +1,64 @@
+# render.yaml — Infrastructure-as-code for Render.com.
+#
+# Defines:
+#   - A managed PostgreSQL database (placement-tracker-db)
+#   - A Python web service for the FastAPI backend (placement-tracker-api)
+#
+# Usage:
+#   1. Push this file to the root of your GitHub repo.
+#   2. In Render Dashboard → "New Blueprint" → connect your repo.
+#   3. Render reads this file and provisions all services automatically.
+#   4. After first deploy, copy the backend URL and set VITE_API_URL on Vercel.
+#
+# Environment variables marked sync: false must be set manually in the Render
+# dashboard after creation (secrets cannot be committed to source control).
+
+services:
+  - type: web
+    name: placement-tracker-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: oregon
+    plan: free          # upgrade to starter for always-on (free sleeps after 15 min)
+
+
+    healthCheckPath: /api/v1/health
+
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+
+      - key: APP_ENV
+        value: prod
+
+      - key: FRONTEND_URL
+        # Set this after you know your Vercel URL.
+        # Example: https://placement-tracker.vercel.app
+        sync: false
+
+      - key: BACKEND_URL
+        # Set this to your Render service URL after first deploy.
+        # Example: https://placement-tracker-api.onrender.com
+        sync: false
+
+      - key: JWT_SECRET_KEY
+        generateValue: true   # Render auto-generates a random secret
+
+      - key: JWT_REFRESH_SECRET_KEY
+        generateValue: true
+
+      - key: GOOGLE_CLIENT_ID
+        sync: false           # paste from Google Cloud Console
+
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+
+      - key: CLOUDINARY_API_KEY
+        sync: false
+
+      - key: CLOUDINARY_API_SECRET
+        sync: false

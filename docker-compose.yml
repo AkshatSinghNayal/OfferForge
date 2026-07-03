@@ -1,0 +1,69 @@
+# Placement Preparation Tracker — local dev / integration compose.
+# Usage:
+#   cp backend/.env.example .env   # fill in secrets
+#   docker-compose up --build
+#
+# The frontend is built inside Docker (Node 20). The backend runs uvicorn.
+# Migrations run automatically on backend container start.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: placement-tracker-db
+    environment:
+      POSTGRES_USER: placement
+      POSTGRES_PASSWORD: placement
+      POSTGRES_DB: placement_tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U placement -d placement_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: placement-tracker-backend
+    env_file:
+      # Copy backend/.env.example → .env and fill in your values.
+      # docker-compose looks for .env in the same directory as this file.
+      - .env
+    environment:
+      # These override anything in .env for docker-compose networking:
+      DATABASE_URL: postgresql+asyncpg://placement:placement@db:5432/placement_tracker
+      FRONTEND_URL: http://localhost:5173
+      BACKEND_URL: http://localhost:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # When the frontend is served by nginx and proxies /api → backend,
+        # VITE_API_URL can stay empty (the Vite proxy config handles it at
+        # dev time; nginx handles it at runtime).
+        VITE_API_URL: ""
+    container_name: placement-tracker-frontend
+    environment:
+      # nginx reverse-proxies /api/* to this URL at runtime.
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
