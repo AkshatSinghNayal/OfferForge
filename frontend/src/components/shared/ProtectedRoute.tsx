@@ -6,13 +6,14 @@
  */
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { LoadingScreen } from '@/components/shared/LoadingScreen'
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth()
 
-  // Still checking auth state — show nothing to prevent UI flash.
+  // Still checking auth state — show loading screen.
   if (isLoading) {
-    return null
+    return <LoadingScreen />
   }
 
   if (!isAuthenticated) {

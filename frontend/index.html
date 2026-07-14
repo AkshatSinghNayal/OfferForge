@@ -25,7 +25,160 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Initial Loading Screen before React/JS bundle is loaded -->
+      <div id="initial-loading-screen">
+        <style>
+          body {
+            background-color: #09090B;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+            color: #FAFAFA;
+            overflow: hidden;
+          }
+          #initial-loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            animation: initial-scale-in 0.3s ease-out forwards;
+          }
+          .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            pointer-events: none;
+          }
+          .glow-orb-top {
+            top: -128px;
+            left: -128px;
+            width: 384px;
+            height: 384px;
+            background: radial-gradient(circle, #3b82f6, transparent 70%);
+          }
+          .glow-orb-bottom {
+            bottom: -128px;
+            right: -128px;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, #a78bfa, transparent 70%);
+          }
+          .logo-placeholder {
+            position: relative;
+            margin-bottom: 24px;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #18181B, #27272A);
+            box-shadow: 0 0 24px rgba(59, 130, 246, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .logo-placeholder::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            background: linear-gradient(to top right, #3b82f6, #a78bfa);
+            opacity: 0.2;
+            filter: blur(6px);
+            animation: initial-pulse 2s infinite ease-in-out;
+          }
+          .logo-emblem {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+          .brand-name {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+          .slogan {
+            font-size: 12px;
+            color: #71717A;
+            margin-bottom: 32px;
+          }
+          .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(59, 130, 246, 0.1);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: initial-spin 0.8s linear infinite;
+            margin-bottom: 16px;
+          }
+          .status {
+            font-size: 14px;
+            font-weight: 500;
+            color: #A1A1AA;
+            animation: initial-pulse 1.5s infinite ease-in-out;
+          }
+          
+          /* Light theme overrides */
+          [data-theme="light"] body {
+            background-color: #FAFAFA;
+            color: #09090B;
+          }
+          [data-theme="light"] .logo-placeholder {
+            background: linear-gradient(135deg, #FFFFFF, #E4E4E7);
+            box-shadow: 0 0 24px rgba(59, 130, 246, 0.1);
+          }
+          [data-theme="light"] .slogan {
+            color: #71717A;
+          }
+          [data-theme="light"] .status {
+            color: #52525B;
+          }
+          [data-theme="light"] .glow-orb-top {
+            background: radial-gradient(circle, rgba(59,130,246,0.1), transparent 70%);
+          }
+          [data-theme="light"] .glow-orb-bottom {
+            background: radial-gradient(circle, rgba(167,139,250,0.1), transparent 70%);
+          }
+
+          @keyframes initial-scale-in {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          @keyframes initial-pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+          }
+          @keyframes initial-spin {
+            to { transform: rotate(360deg); }
+          }
+        </style>
+        <div class="glow-orb glow-orb-top"></div>
+        <div class="glow-orb glow-orb-bottom"></div>
+        <div id="initial-loading-container">
+          <div class="logo-placeholder">
+            <div class="logo-emblem">OF</div>
+          </div>
+          <div class="brand-name">OfferForge</div>
+          <div class="slogan">Placement prep, organised.</div>
+          <div class="spinner"></div>
+          <div class="status">Loading OfferForge...</div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
