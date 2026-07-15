@@ -175,7 +175,18 @@ async def seed_demo_data(session: AsyncSession) -> User:
 
     # ── 3. DSA problems + tags ───────────────────────────────────────────────
     problem_tag_pairs: list[tuple[DsaProblem, list[str]]] = []
+    now = datetime.now(timezone.utc)
+    # Stagger completion dates so the cumulative chart looks realistic
+    solved_idx = 0
+    solved_dates = [
+        now - timedelta(days=d)
+        for d in [90, 85, 82, 78, 75, 72, 68, 65, 62, 58, 55, 52, 48, 45, 42, 38, 35, 32, 28, 25, 22, 18, 15, 12, 8, 5, 2]
+    ]
     for title, platform, url, difficulty, status, revision, notes, tags in PROBLEMS:
+        completed_at = None
+        if status == "Solved":
+            completed_at = solved_dates[solved_idx] if solved_idx < len(solved_dates) else now
+            solved_idx += 1
         problem = DsaProblem(
             user_id=demo.id,
             title=title,
@@ -185,6 +196,7 @@ async def seed_demo_data(session: AsyncSession) -> User:
             status=status,
             revision_status=revision,
             notes=notes or None,
+            completed_at=completed_at,
         )
         session.add(problem)
         await session.flush()

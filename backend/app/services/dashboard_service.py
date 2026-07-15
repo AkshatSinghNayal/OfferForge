@@ -207,33 +207,31 @@ async def get_summary(session: AsyncSession, *, user: User) -> DashboardSummary:
 
 async def _build_charts(
     session: AsyncSession, *, user: User, dsa_solved: int
-) -> DashboardCharts:
-    """Build the three chart datasets.
+    ) -> DashboardCharts:
+        """Build the three chart datasets.
 
-    1. dsa_solved_over_time: grouped by calendar date of completed_at
-       (NOT created_at — this is the critical distinction per Phase 7 brief).
-       Last 30 days of completions.
-    2. topic_distribution: per-tag solved/total across the user's problems.
-    3. company_readiness: per-tracked-company checklist completion %.
-    """
-    # --- 1. DSA solved over time (by completed_at date, last 30 days) ---
-    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
-    # Group by DATE(completed_at) — cast timestamptz to date.
-    solved_rows = (
-        await session.execute(
-            select(
-                func.date(DsaProblem.completed_at).label("d"),
-                func.count().label("c"),
+        1. dsa_solved_over_time: grouped by calendar date of completed_at
+           (NOT created_at — this is the critical distinction per Phase 7 brief).
+           All-time completions so the cumulative curve grows monotonically.
+        2. topic_distribution: per-tag solved/total across the user's problems.
+        3. company_readiness: per-tracked-company checklist completion %.
+        """
+        # --- 1. DSA solved over time (by completed_at date, all time) ---
+        # Group by DATE(completed_at) — cast timestamptz to date.
+        solved_rows = (
+            await session.execute(
+                select(
+                    func.date(DsaProblem.completed_at).label("d"),
+                    func.count().label("c"),
+                )
+                .where(
+                    DsaProblem.user_id == user.id,
+                    DsaProblem.completed_at.is_not(None),
+                )
+                .group_by(func.date(DsaProblem.completed_at))
+                .order_by(func.date(DsaProblem.completed_at).asc())
             )
-            .where(
-                DsaProblem.user_id == user.id,
-                DsaProblem.completed_at.is_not(None),
-                DsaProblem.completed_at >= thirty_days_ago,
-            )
-            .group_by(func.date(DsaProblem.completed_at))
-            .order_by(func.date(DsaProblem.completed_at).asc())
-        )
-    ).all()
+        ).all()
     dsa_solved_over_time = [
         DsaSolvedOverTimePoint(date=row[0], count=row[1])
         for row in solved_rows
