@@ -41,7 +41,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) })
 
   const [loadingMethod, setLoadingMethod] = useState<'demo' | 'google' | 'email' | null>(null)

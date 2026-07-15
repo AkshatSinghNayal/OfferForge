@@ -25,7 +25,7 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) })
 
   const [loadingMethod, setLoadingMethod] = useState<'demo' | 'google' | 'email' | null>(null)
