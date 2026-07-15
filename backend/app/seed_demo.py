@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
@@ -162,7 +162,7 @@ async def seed_demo_data(session: AsyncSession) -> User:
     session.add(demo)
     await session.flush()
 
-    # ── 2. DSA tags ───────────────────────────────────────────────────────────
+    # ── 2. DSA tags (reuse existing, create missing) ───────────────────────
     tag_names = [
         "Arrays", "Strings", "Trees", "Graphs", "Dynamic Programming",
         "Hash Maps", "Two Pointers", "Heaps", "Stacks", "Linked Lists",
@@ -170,9 +170,11 @@ async def seed_demo_data(session: AsyncSession) -> User:
     ]
     tag_map: dict[str, DsaTag] = {}
     for name in tag_names:
-        tag = DsaTag(name=name)
-        session.add(tag)
-        await session.flush()
+        tag = await session.scalar(select(DsaTag).where(func.lower(DsaTag.name) == name.lower()))
+        if tag is None:
+            tag = DsaTag(name=name)
+            session.add(tag)
+            await session.flush()
         tag_map[name] = tag
 
     # ── 3. DSA problems + tags ───────────────────────────────────────────────
