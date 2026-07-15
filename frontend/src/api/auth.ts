@@ -37,4 +37,8 @@ export const authApi = {
   googleLogin: () => {
     window.location.href = `${import.meta.env.VITE_API_URL || ''}/api/v1/auth/google/login`
   },
+
+  /** Log in as the demo user — seeds demo data on first call. */
+  demoLogin: () =>
+    apiPost<TokenResponse>('/auth/demo'),
 }

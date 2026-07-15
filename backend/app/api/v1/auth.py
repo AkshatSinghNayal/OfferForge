@@ -28,6 +28,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserPublic,
 )
+from app.seed_demo import DEMO_EMAIL, DEMO_PASSWORD, seed_demo_data
 from app.services import auth_service, oauth
 from app.services.auth_service import (
     AuthError,
@@ -106,6 +107,20 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except UserInactiveError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    set_refresh_cookie(response, raw_refresh)
+    return TokenResponse(access_token=access, user=_user_to_public(user))
+
+
+@router.post("/demo", response_model=TokenResponse)
+async def demo_login(
+    response: Response,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Seed demo data (idempotent) and log in as the demo user."""
+    user = await seed_demo_data(session)
+    _, access, raw_refresh = await auth_service.login(
+        session, email=DEMO_EMAIL, password=DEMO_PASSWORD
+    )
     set_refresh_cookie(response, raw_refresh)
     return TokenResponse(access_token=access, user=_user_to_public(user))
 
