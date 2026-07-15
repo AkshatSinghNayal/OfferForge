@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GzipMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -38,6 +39,9 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
+
+    # Compress response payloads above 1000 bytes
+    app.add_middleware(GzipMiddleware, minimum_size=1000)
 
     app.include_router(api_router)
 

@@ -58,16 +58,16 @@ async def get_summary(session: AsyncSession, *, user: User) -> DashboardSummary:
     others, and so we can later cache them individually if needed.
     """
     # --- DSA completion % ---
-    dsa_total = await session.scalar(
-        select(func.count()).select_from(DsaProblem).where(DsaProblem.user_id == user.id)
-    )
-    dsa_solved = await session.scalar(
-        select(func.count())
-        .select_from(DsaProblem)
-        .where(DsaProblem.user_id == user.id, DsaProblem.status == "Solved")
-    )
-    dsa_total = dsa_total or 0
-    dsa_solved = dsa_solved or 0
+    dsa_counts = (
+        await session.execute(
+            select(
+                func.count(DsaProblem.id).label("total"),
+                func.count(DsaProblem.id).filter(DsaProblem.status == "Solved").label("solved"),
+            ).where(DsaProblem.user_id == user.id)
+        )
+    ).first()
+    dsa_total = dsa_counts[0] or 0 if dsa_counts else 0
+    dsa_solved = dsa_counts[1] or 0 if dsa_counts else 0
     dsa_completion_pct = round(dsa_solved / dsa_total * 100, 1) if dsa_total else 0.0
 
     # --- Resume readiness score ---
@@ -81,20 +81,18 @@ async def get_summary(session: AsyncSession, *, user: User) -> DashboardSummary:
     has_active_resume = (active_resume_count or 0) > 0
 
     # Keyword coverage across ALL of the user's resumes (aggregate).
-    kw_total = await session.scalar(
-        select(func.count())
-        .select_from(ResumeKeyword)
-        .join(Resume, Resume.id == ResumeKeyword.resume_id)
-        .where(Resume.user_id == user.id)
-    )
-    kw_present = await session.scalar(
-        select(func.count())
-        .select_from(ResumeKeyword)
-        .join(Resume, Resume.id == ResumeKeyword.resume_id)
-        .where(Resume.user_id == user.id, ResumeKeyword.is_present == True)  # noqa: E712
-    )
-    kw_total = kw_total or 0
-    kw_present = kw_present or 0
+    kw_counts = (
+        await session.execute(
+            select(
+                func.count(ResumeKeyword.id).label("total"),
+                func.count(ResumeKeyword.id).filter(ResumeKeyword.is_present == True).label("present"),
+            )
+            .join(Resume, Resume.id == ResumeKeyword.resume_id)
+            .where(Resume.user_id == user.id)
+        )
+    ).first()
+    kw_total = kw_counts[0] or 0 if kw_counts else 0
+    kw_present = kw_counts[1] or 0 if kw_counts else 0
     keyword_coverage_pct = round(kw_present / kw_total * 100, 1) if kw_total else 0.0
     # readiness_score = keyword_coverage_pct * 0.6 + has_active_resume * 0.4
     resume_readiness_score = round(
@@ -102,20 +100,18 @@ async def get_summary(session: AsyncSession, *, user: User) -> DashboardSummary:
     )
 
     # --- Checklist completion % (across all tracked companies) ---
-    ci_total = await session.scalar(
-        select(func.count())
-        .select_from(ChecklistItem)
-        .join(UserCompany, UserCompany.id == ChecklistItem.user_company_id)
-        .where(UserCompany.user_id == user.id)
-    )
-    ci_done = await session.scalar(
-        select(func.count())
-        .select_from(ChecklistItem)
-        .join(UserCompany, UserCompany.id == ChecklistItem.user_company_id)
-        .where(UserCompany.user_id == user.id, ChecklistItem.is_done == True)  # noqa: E712
-    )
-    ci_total = ci_total or 0
-    ci_done = ci_done or 0
+    ci_counts = (
+        await session.execute(
+            select(
+                func.count(ChecklistItem.id).label("total"),
+                func.count(ChecklistItem.id).filter(ChecklistItem.is_done == True).label("done"),
+            )
+            .join(UserCompany, UserCompany.id == ChecklistItem.user_company_id)
+            .where(UserCompany.user_id == user.id)
+        )
+    ).first()
+    ci_total = ci_counts[0] or 0 if ci_counts else 0
+    ci_done = ci_counts[1] or 0 if ci_counts else 0
     checklist_completion_pct = round(ci_done / ci_total * 100, 1) if ci_total else 0.0
 
     # --- Overall progress (weighted) ---
@@ -272,22 +268,24 @@ async def _build_charts(
         )
     ).all()
 
+    # Bulk fetch checklist item counts for all user companies in a single query
+    counts_query = (
+        select(
+            ChecklistItem.user_company_id,
+            func.count(ChecklistItem.id).label("total"),
+            func.count(ChecklistItem.id).filter(ChecklistItem.is_done == True).label("done")
+        )
+        .join(UserCompany, UserCompany.id == ChecklistItem.user_company_id)
+        .where(UserCompany.user_id == user.id)
+        .group_by(ChecklistItem.user_company_id)
+    )
+    counts_rows = (await session.execute(counts_query)).all()
+    counts_map = {row[0]: (row[1] or 0, row[2] or 0) for row in counts_rows}
+
     company_readiness: list[CompanyReadinessPoint] = []
     for uc, company in company_rows:
-        # Per-company checklist counts.
-        ci_total = await session.scalar(
-            select(func.count())
-            .select_from(ChecklistItem)
-            .where(ChecklistItem.user_company_id == uc.id)
-        )
-        ci_done = await session.scalar(
-            select(func.count())
-            .select_from(ChecklistItem)
-            .where(ChecklistItem.user_company_id == uc.id, ChecklistItem.is_done == True)  # noqa: E712
-        )
-        ci_total = ci_total or 0
-        ci_done = ci_done or 0
-        pct = round(ci_done / ci_total * 100, 1) if ci_total else 0.0
+        total, done = counts_map.get(uc.id, (0, 0))
+        pct = round(done / total * 100, 1) if total else 0.0
         company_readiness.append(
             CompanyReadinessPoint(
                 user_company_id=uc.id,
