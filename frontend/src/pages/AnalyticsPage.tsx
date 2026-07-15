@@ -15,11 +15,18 @@ import { TOOLTIP_STYLE, AXIS_TICK_STYLE } from '@/lib/chartTheme'
 import { format, formatDistanceToNow, subDays, eachDayOfInterval } from 'date-fns'
 
 // ─── Streak graph — shows consecutive-day breaks visually ─────────────────────
+const STREAK_PALETTE = [
+  'var(--accent)', 'var(--success)', 'var(--warning)',
+  '#8B5CF6', '#EC4899', '#06B6D4', '#F97316', '#14B8A6',
+]
+
 function StreakGraph({ data }: { data: { date: string; count: number }[] }) {
   const today = new Date()
   const days = eachDayOfInterval({ start: subDays(today, 27), end: today }) // 4 weeks
 
   const countMap = new Map(data.map(d => [d.date, d.count]))
+
+  const maxCount = Math.max(1, ...data.map(d => d.count))
 
   const chartData = days.map(d => ({
     date: format(d, 'MMM d'),
@@ -38,13 +45,18 @@ function StreakGraph({ data }: { data: { date: string; count: number }[] }) {
           formatter={(v) => [v ?? 0, 'Activities'] as [number, string]}
         />
         <Bar dataKey="count" radius={[3, 3, 0, 0]} name="Activities">
-          {chartData.map((d, i) => (
-            <Cell
-              key={i}
-              fill={d.count === 0 ? 'var(--border)' : 'var(--accent)'}
-              opacity={d.count === 0 ? 0.4 : 1}
-            />
-          ))}
+          {chartData.map((d, i) => {
+            const color = d.count === 0
+              ? 'var(--text-muted)'
+              : STREAK_PALETTE[Math.min(d.count - 1, STREAK_PALETTE.length - 1) % STREAK_PALETTE.length]
+            return (
+              <Cell
+                key={i}
+                fill={color}
+                opacity={d.count === 0 ? 0.2 : 1}
+              />
+            )
+          })}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

@@ -66,17 +66,17 @@ function CalendarHeatmap({ data }: { data: { date: string; count: number }[] }) 
   const maxCount = Math.max(1, ...data.map(d => d.count))
 
   const cellColor = (count: number) => {
-    if (count === 0) return 'var(--border)'
+    if (count === 0) return 'var(--text-muted)'
     const intensity = count / maxCount
     if (intensity > 0.75) return 'var(--accent)'
-    if (intensity > 0.4) return 'var(--accent)'
-    return 'var(--accent)'
+    if (intensity > 0.4) return 'var(--success)'
+    return '#60A5FA'
   }
 
   const cellOpacity = (count: number) => {
-    if (count === 0) return 1
+    if (count === 0) return 0.15
     const intensity = count / maxCount
-    return 0.25 + intensity * 0.75
+    return 0.5 + intensity * 0.5
   }
 
   // Group into weeks (columns)
@@ -115,9 +115,10 @@ function CalendarHeatmap({ data }: { data: { date: string; count: number }[] }) 
       </div>
       <div className="flex items-center gap-1 mt-2">
         <span className="text-[10px] text-[var(--text-muted)]">Less</span>
-        {[0, 0.25, 0.5, 0.75, 1].map(o => (
-          <div key={o} className="w-3 h-3 rounded-sm" style={{ backgroundColor: o === 0 ? 'var(--border)' : 'var(--accent)', opacity: o === 0 ? 1 : 0.25 + o * 0.75 }} />
-        ))}
+        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'var(--text-muted)', opacity: 0.15 }} />
+        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: '#60A5FA', opacity: 0.7 }} />
+        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'var(--success)', opacity: 0.8 }} />
+        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'var(--accent)', opacity: 1 }} />
         <span className="text-[10px] text-[var(--text-muted)]">More</span>
       </div>
     </div>
