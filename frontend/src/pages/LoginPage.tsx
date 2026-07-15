@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -44,13 +44,17 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) })
 
+  const [loadingMethod, setLoadingMethod] = useState<'demo' | 'google' | 'email' | null>(null)
+
   const onSubmit = async (data: LoginFormData) => {
+    setLoadingMethod('email')
     try {
       const res = await authApi.login(data)
       login(res.user, res.access_token)
       toast.success(`Welcome back, ${res.user.full_name.split(' ')[0]}!`)
       navigate('/dashboard', { replace: true })
     } catch (err) {
+      setLoadingMethod(null)
       if (axios.isAxiosError(err)) {
         const detail = err.response?.data?.detail
         toast.error(
@@ -74,7 +78,9 @@ export default function LoginPage() {
         variant="outline"
         className="w-full mb-4 gap-2"
         type="button"
+        disabled={loadingMethod !== null}
         onClick={async () => {
+          setLoadingMethod('demo')
           try {
             const res = await authApi.demoLogin()
             login(res.user, res.access_token)
@@ -82,11 +88,21 @@ export default function LoginPage() {
             navigate('/dashboard', { replace: true })
           } catch {
             toast.error('Demo login failed. Please try again.')
+            setLoadingMethod(null)
           }
         }}
       >
-        <span className="text-base leading-none">🔑</span>
-        Access with Demo Account
+        {loadingMethod === 'demo' ? (
+          <>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+            Logging in to Demo...
+          </>
+        ) : (
+          <>
+            <span className="text-base leading-none">🔑</span>
+            Access with Demo Account
+          </>
+        )}
       </Button>
 
       {/* Google OAuth */}
@@ -94,10 +110,23 @@ export default function LoginPage() {
         variant="outline"
         className="w-full mb-4 gap-2"
         type="button"
-        onClick={() => authApi.googleLogin()}
+        disabled={loadingMethod !== null}
+        onClick={() => {
+          setLoadingMethod('google')
+          authApi.googleLogin()
+        }}
       >
-        <GoogleIcon />
-        Continue with Google
+        {loadingMethod === 'google' ? (
+          <>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+            Redirecting to Google...
+          </>
+        ) : (
+          <>
+            <GoogleIcon />
+            Continue with Google
+          </>
+        )}
       </Button>
 
       {/* Divider */}
@@ -152,8 +181,15 @@ export default function LoginPage() {
           )}
         </div>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
+        <Button type="submit" className="w-full gap-2" disabled={loadingMethod !== null}>
+          {loadingMethod === 'email' ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              Signing in...
+            </>
+          ) : (
+            'Sign in'
+          )}
         </Button>
       </form>
 
