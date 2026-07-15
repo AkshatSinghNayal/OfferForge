@@ -8,7 +8,7 @@ A professional placement preparation hub — DSA tracking, company checklists, r
 
 | Desktop Dashboard |
 |:-:|
-| ![](frontend/public/screenshots/DesktopDashboard.png) |
+| ![](frontend/public/screenshots/DesktopDashboardd.png) |
 
 | Mobile Dashboard | Mobile More |
 |:-:|:-:|
