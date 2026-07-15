@@ -6,6 +6,7 @@ lives in app.services.auth_service so routers stay thin.
 
 from __future__ import annotations
 
+import anyio
 import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -26,14 +27,14 @@ from app.core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def hash_password(plain: str) -> str:
+async def hash_password(plain: str) -> str:
     """Hash a plaintext password. Returns a bcrypt hash string."""
     if not plain:
         raise ValueError("password cannot be empty")
-    return pwd_context.hash(plain)
+    return await anyio.to_thread.run_sync(pwd_context.hash, plain)
 
 
-def verify_password(plain: str, hashed: str) -> bool:
+async def verify_password(plain: str, hashed: str) -> bool:
     """Verify a plaintext password against a stored bcrypt hash.
 
     Returns False (not raises) on mismatch — callers branch on the bool.
@@ -41,7 +42,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     if not plain or not hashed:
         return False
     try:
-        return pwd_context.verify(plain, hashed)
+        return await anyio.to_thread.run_sync(pwd_context.verify, plain, hashed)
     except (ValueError, TypeError):
         # Malformed hash — treat as failed verification, never raise.
         return False

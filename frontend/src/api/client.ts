@@ -22,7 +22,10 @@ import axios, {
 let _accessToken: string | null = null
 let _isRefreshing = false
 // Queued requests waiting for the refresh to complete.
-type RefreshSubscriber = (token: string) => void
+interface RefreshSubscriber {
+  resolve: (token: string) => void
+  reject: (error: any) => void
+}
 let _refreshSubscribers: RefreshSubscriber[] = []
 
 export function setAccessToken(token: string | null) {
@@ -33,16 +36,17 @@ export function getAccessToken(): string | null {
   return _accessToken
 }
 
-function subscribeTokenRefresh(cb: RefreshSubscriber) {
-  _refreshSubscribers.push(cb)
+function subscribeTokenRefresh(resolve: (token: string) => void, reject: (err: any) => void) {
+  _refreshSubscribers.push({ resolve, reject })
 }
 
 function onTokenRefreshed(token: string) {
-  _refreshSubscribers.forEach((cb) => cb(token))
+  _refreshSubscribers.forEach((sub) => sub.resolve(token))
   _refreshSubscribers = []
 }
 
-function onRefreshFailed() {
+function onRefreshFailed(error: any) {
+  _refreshSubscribers.forEach((sub) => sub.reject(error))
   _refreshSubscribers = []
 }
 
@@ -83,15 +87,17 @@ apiClient.interceptors.response.use(
       if (_isRefreshing) {
         // Another refresh is already in flight — queue this request.
         return new Promise<unknown>((resolve, reject) => {
-          subscribeTokenRefresh((token: string) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`
+          subscribeTokenRefresh(
+            (token: string) => {
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`
+              }
+              resolve(apiClient(originalRequest))
+            },
+            (err: any) => {
+              reject(err)
             }
-            resolve(apiClient(originalRequest))
-          })
-          // If refresh fails, reject all queued requests too.
-          // We repurpose the subscriber to handle this by re-checking later.
-          void reject
+          )
         })
       }
 
@@ -112,10 +118,10 @@ apiClient.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newToken}`
         }
         return apiClient(originalRequest)
-      } catch (_refreshError) {
+      } catch (refreshError) {
         _isRefreshing = false
         setAccessToken(null)
-        onRefreshFailed()
+        onRefreshFailed(refreshError)
 
         // Dispatch a custom event so AuthContext can react without a circular
         // import dependency.

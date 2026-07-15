@@ -119,7 +119,7 @@ async def signup(
     user = User(
         email=email,
         full_name=full_name,
-        hashed_password=hash_password(password),
+        hashed_password=await hash_password(password),
         google_sub=None,
         is_active=True,
     )
@@ -163,7 +163,7 @@ async def login(
         # User exists but is Google-only — they have no password to verify.
         # Treat as invalid credentials rather than revealing the account type.
         raise InvalidCredentialsError("invalid email or password")
-    if not verify_password(password, user.hashed_password):
+    if not await verify_password(password, user.hashed_password):
         raise InvalidCredentialsError("invalid email or password")
 
     from app.core.security import create_access_token
@@ -363,7 +363,7 @@ async def confirm_password_reset(
         raise UserInactiveError("account is inactive")
 
     # Set new password.
-    user.hashed_password = hash_password(new_password)
+    user.hashed_password = await hash_password(new_password)
     row.used_at = datetime.now(timezone.utc)
 
     # Revoke all outstanding refresh tokens for this user — force re-login

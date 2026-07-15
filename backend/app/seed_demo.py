@@ -10,7 +10,7 @@ Usage from the auth router:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,53 +21,37 @@ from app.models.company import CHECKLIST_ITEMS, ChecklistItem, Company, UserComp
 from app.models.dsa import DsaProblem, DsaProblemTag, DsaTag
 from app.models.note import Note
 from app.models.resource import Resource
+from app.models.resume import Resume
 from app.models.user import User
 
 DEMO_EMAIL = "demo@offerforge.dev"
 DEMO_PASSWORD = "Demo@123"
 DEMO_FULL_NAME = "Demo User"
 
-# ── DSA problems ──────────────────────────────────────────────────────────────
+# ── DSA problems (exactly 18 problems, all Solved) ───────────────────────────
 # (title, platform, url, difficulty, status, revision_status, notes, [tags])
 PROBLEMS: list[tuple[str, str, str, str, str, str, str, list[str]]] = [
     ("Two Sum", "LeetCode", "https://leetcode.com/problems/two-sum/", "Easy", "Solved", "Done", "Classic O(n) hashmap solution", ["Arrays", "Hash Maps"]),
-    ("Valid Parentheses", "LeetCode", "https://leetcode.com/problems/valid-parentheses/", "Easy", "Solved", "Done", "Stack-based matching", ["Stacks", "Strings"]),
-    ("Merge Two Sorted Lists", "LeetCode", "https://leetcode.com/problems/merge-two-sorted-lists/", "Easy", "Solved", "None", "Iterative with dummy head", ["Linked Lists", "Recursion"]),
-    ("Maximum Depth of Binary Tree", "LeetCode", "https://leetcode.com/problems/maximum-depth-of-binary-tree/", "Easy", "Solved", "None", "Recursive DFS", ["Trees", "Recursion"]),
-    ("Invert Binary Tree", "LeetCode", "https://leetcode.com/problems/invert-binary-tree/", "Easy", "Solved", "None", "Swap children recursively", ["Trees", "Recursion"]),
-    ("Best Time to Buy and Sell Stock", "LeetCode", "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/", "Easy", "Solved", "None", "Single pass tracking min", ["Arrays", "Greedy"]),
+    ("Best Time to Buy and Sell Stock", "LeetCode", "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/", "Easy", "Solved", "None", "Single pass tracking min", ["Arrays"]),
     ("Maximum Subarray", "LeetCode", "https://leetcode.com/problems/maximum-subarray/", "Medium", "Solved", "Done", "Kadane's algorithm O(n)", ["Arrays", "Dynamic Programming"]),
     ("Product of Array Except Self", "LeetCode", "https://leetcode.com/problems/product-of-array-except-self/", "Medium", "Solved", "None", "Prefix + suffix products", ["Arrays"]),
-    ("Maximum Product Subarray", "LeetCode", "https://leetcode.com/problems/maximum-product-subarray/", "Medium", "Solved", "None", "Track min & max simultaneously", ["Arrays", "Dynamic Programming"]),
-    ("Find Minimum in Rotated Sorted Array", "LeetCode", "https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/", "Medium", "Solved", "Done", "Binary search variant", ["Binary Search", "Arrays"]),
-    ("Search in Rotated Sorted Array", "LeetCode", "https://leetcode.com/problems/search-in-rotated-sorted-array/", "Medium", "Solved", "None", "Modified binary search", ["Binary Search", "Arrays"]),
-    ("3Sum", "LeetCode", "https://leetcode.com/problems/3sum/", "Medium", "Solved", "None", "Sort + two-pointer", ["Arrays", "Two Pointers"]),
-    ("Container With Most Water", "LeetCode", "https://leetcode.com/problems/container-with-most-water/", "Medium", "In Progress", "None", "", ["Arrays", "Two Pointers", "Greedy"]),
-    ("Longest Substring Without Repeating Characters", "LeetCode", "https://leetcode.com/problems/longest-substring-without-repeating-characters/", "Medium", "Solved", "Done", "Sliding window with set", ["Strings", "Sliding Window"]),
-    ("Longest Palindromic Substring", "LeetCode", "https://leetcode.com/problems/longest-palindromic-substring/", "Medium", "Solved", "None", "Expand around centre", ["Strings", "Dynamic Programming"]),
-    ("Word Break", "LeetCode", "https://leetcode.com/problems/word-break/", "Medium", "Marked for Revision", "Due", "DP + memoisation", ["Dynamic Programming", "Strings"]),
-    ("Number of Islands", "LeetCode", "https://leetcode.com/problems/number-of-islands/", "Medium", "Solved", "None", "DFS flood-fill on grid", ["Graphs", "Recursion"]),
-    ("Clone Graph", "LeetCode", "https://leetcode.com/problems/clone-graph/", "Medium", "Solved", "None", "BFS + hashmap", ["Graphs", "Hash Maps"]),
-    ("Course Schedule", "LeetCode", "https://leetcode.com/problems/course-schedule/", "Medium", "Solved", "None", "Topological sort (Kahn's)", ["Graphs", "Greedy"]),
-    ("Pacific Atlantic Water Flow", "LeetCode", "https://leetcode.com/problems/pacific-atlantic-water-flow/", "Medium", "In Progress", "None", "", ["Graphs", "Arrays"]),
-    ("Longest Consecutive Sequence", "LeetCode", "https://leetcode.com/problems/longest-consecutive-sequence/", "Medium", "Solved", "Done", "HashSet O(n) approach", ["Arrays", "Hash Maps"]),
-    ("Binary Tree Level Order Traversal", "LeetCode", "https://leetcode.com/problems/binary-tree-level-order-traversal/", "Medium", "Solved", "Done", "BFS with queue", ["Trees", "Recursion"]),
-    ("Validate Binary Search Tree", "LeetCode", "https://leetcode.com/problems/validate-binary-search-tree/", "Medium", "Solved", "None", "In-order traversal check", ["Trees", "Recursion"]),
-    ("Kth Smallest Element in a BST", "LeetCode", "https://leetcode.com/problems/kth-smallest-element-in-a-bst/", "Medium", "In Progress", "None", "", ["Trees", "Binary Search"]),
-    ("LRU Cache", "LeetCode", "https://leetcode.com/problems/lru-cache/", "Medium", "Marked for Revision", "Due", "DLL + hashmap", ["Linked Lists", "Hash Maps"]),
-    ("Subset Sum Problem", "GFG", "https://www.geeksforgeeks.org/subset-sum-problem-dp-25/", "Medium", "Solved", "None", "Classic DP", ["Dynamic Programming", "Arrays"]),
-    ("Longest Common Subsequence", "GFG", "https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/", "Medium", "Solved", "None", "2D DP table", ["Dynamic Programming", "Strings"]),
-    ("Merge k Sorted Lists", "LeetCode", "https://leetcode.com/problems/merge-k-sorted-lists/", "Hard", "Not Started", "None", "", ["Heaps", "Linked Lists", "Divide and Conquer"]),
-    ("Serialize and Deserialize Binary Tree", "LeetCode", "https://leetcode.com/problems/serialize-and-deserialize-binary-tree/", "Hard", "In Progress", "None", "", ["Trees", "Strings"]),
-    ("Sliding Window Maximum", "LeetCode", "https://leetcode.com/problems/sliding-window-maximum/", "Hard", "Marked for Revision", "Due", "Deque-based O(n)", ["Arrays", "Sliding Window", "Heaps"]),
-    ("Median of Two Sorted Arrays", "LeetCode", "https://leetcode.com/problems/median-of-two-sorted-arrays/", "Hard", "Not Started", "None", "", ["Binary Search", "Arrays"]),
-    ("Minimum Window Substring", "LeetCode", "https://leetcode.com/problems/minimum-window-substring/", "Hard", "In Progress", "None", "", ["Strings", "Sliding Window", "Hash Maps"]),
-    ("Word Ladder", "LeetCode", "https://leetcode.com/problems/word-ladder/", "Hard", "Marked for Revision", "Due", "BFS + pattern generation", ["Graphs", "Strings"]),
-    ("Trapping Rain Water", "LeetCode", "https://leetcode.com/problems/trapping-rain-water/", "Hard", "Not Started", "None", "", ["Arrays", "Two Pointers", "Stacks"]),
-    ("N-Queens", "LeetCode", "https://leetcode.com/problems/n-queens/", "Hard", "Not Started", "None", "", ["Recursion", "Arrays"]),
+    ("N-Queens", "LeetCode", "https://leetcode.com/problems/n-queens/", "Hard", "Solved", "None", "Classic backtracking", ["Recursion"]),
+    ("Subset Sum Problem", "GFG", "https://www.geeksforgeeks.org/subset-sum-problem-dp-25/", "Medium", "Solved", "None", "Classic DP", ["Dynamic Programming"]),
+    ("Number of Islands", "LeetCode", "https://leetcode.com/problems/number-of-islands/", "Medium", "Solved", "None", "DFS flood-fill on grid", ["Graphs"]),
+    ("Course Schedule", "LeetCode", "https://leetcode.com/problems/course-schedule/", "Medium", "Solved", "None", "Topological sort (Kahn's)", ["Greedy"]),
+    ("Valid Parentheses", "LeetCode", "https://leetcode.com/problems/valid-parentheses/", "Easy", "Solved", "Done", "Stack-based matching", ["Hash Maps"]),
+    ("Longest Consecutive Sequence", "LeetCode", "https://leetcode.com/problems/longest-consecutive-sequence/", "Medium", "Solved", "Done", "HashSet O(n) approach", ["Hash Maps"]),
+    ("LRU Cache", "LeetCode", "https://leetcode.com/problems/lru-cache/", "Medium", "Solved", "None", "DLL + hashmap", ["Hash Maps"]),
+    ("Minimum Window Substring", "LeetCode", "https://leetcode.com/problems/minimum-window-substring/", "Hard", "Solved", "None", "Sliding window", ["Hash Maps"]),
+    ("Valid Anagram", "LeetCode", "https://leetcode.com/problems/valid-anagram/", "Easy", "Solved", "None", "Hash map frequency count", ["Hash Maps"]),
+    ("Group Anagrams", "LeetCode", "https://leetcode.com/problems/group-anagrams/", "Medium", "Solved", "None", "Categorize by sorted string", ["Hash Maps"]),
+    ("Merge Two Sorted Lists", "LeetCode", "https://leetcode.com/problems/merge-two-sorted-lists/", "Easy", "Solved", "None", "Iterative with dummy head", ["Linked Lists", "Recursion"]),
+    ("Maximum Depth of Binary Tree", "LeetCode", "https://leetcode.com/problems/maximum-depth-of-binary-tree/", "Easy", "Solved", "None", "Recursive DFS", ["Recursion"]),
+    ("Invert Binary Tree", "LeetCode", "https://leetcode.com/problems/invert-binary-tree/", "Easy", "Solved", "None", "Swap children recursively", ["Recursion"]),
+    ("Reverse Linked List", "LeetCode", "https://leetcode.com/problems/reverse-linked-list/", "Easy", "Solved", "None", "Iterative pointer reversal", ["Linked Lists"]),
 ]
 
-# ── Resources ─────────────────────────────────────────────────────────────────
+# ── Resources (exactly 6 resources) ──────────────────────────────────────────
 RESOURCES: list[tuple[str, str, str, str]] = [
     ("Google Careers", "https://careers.google.com/", "Career Portal", "Official Google job listings and applications"),
     ("LinkedIn Jobs", "https://www.linkedin.com/jobs/", "Career Portal", "Network-driven job search platform"),
@@ -75,15 +59,9 @@ RESOURCES: list[tuple[str, str, str, str]] = [
     ("Blind 75", "https://leetcode.com/discuss/general-discussion/460599/blind-75-leetcode-questions", "Coding Sheet", "Curated list of 75 most frequently asked LeetCode problems"),
     ("InterviewBit", "https://www.interviewbit.com/", "Interview Prep", "Structured DSA + system design prep with company-wise questions"),
     ("Pramp", "https://www.pramp.com/", "Interview Prep", "Free peer-to-peer mock interviews with real-time feedback"),
-    ("NeetCode", "https://neetcode.io/", "YouTube", "Visual DSA explanations with roadmap and problem list"),
-    ("takeUForward", "https://www.youtube.com/c/takeUforward", "YouTube", "A2Z DSA sheet with video solutions by Raj Vikramaditya"),
-    ("DSA Patterns Cheatsheet", "https://github.com/ashishps1/awesome-leetcode-resources", "Notes", "Collection of DSA patterns, templates, and topic-wise resources"),
-    ("System Design Primer", "https://github.com/donnemartin/system-design-primer", "Notes", "Comprehensive system design resource with examples at scale"),
-    ("OOP Concepts Explained", "https://www.geeksforgeeks.org/object-oriented-programming-oops-concept-in-java/", "Article", "Core OOP concepts with Java examples — encapsulation, inheritance, polymorphism"),
-    ("DBMS Interview Questions", "https://www.geeksforgeeks.org/dbms/", "Article", "Complete DBMS tutorial covering SQL, normalisation, transactions, indexing"),
 ]
 
-# ── Notes ─────────────────────────────────────────────────────────────────────
+# ── Notes (exactly 6 notes) ───────────────────────────────────────────────────
 # (title, type, content, company_name or None)
 NOTES: list[tuple[str, str, str, str | None]] = [
     ("Google Interview Strategy", "Interview Note",
@@ -104,42 +82,19 @@ NOTES: list[tuple[str, str, str, str | None]] = [
     ("Tell Me About Yourself — HR Prep", "HR Answer",
      "**Structure**: Present → Past → Future\n\n**Present**: 'I'm a final-year CS student passionate about building scalable systems...'\n**Past**: 'Previously interned at XYZ where I designed and built a real-time analytics dashboard serving 10k+ users, reducing report generation time by 80%.'\n**Future**: 'I'm looking to join a company where I can solve challenging problems at scale and continue growing as an engineer.'\n\n**Keep it**: under 60 seconds, highlight 2-3 key achievements, connect to the role.",
      None),
-    ("Daily Log — Day 15 of Prep", "Personal",
-     "## Today's Progress\n\n**Solved**:\n- Minimum Window Substring (Hard) — finally cracked the sliding window approach\n- Course Schedule II — topological sort using Kahn's algorithm\n\n**Struggling with**:\n- DP on subsets, need more practice on partition problems\n\n**Tomorrow**: tackle 3 hard problems from Blind 75 + revise LRU cache\n\n**Mood**: Making steady progress, confidence building!",
-     None),
-    ("Project Ideas for Resume", "Personal",
-     "## Shortlist\n\n1. **Real-time Chat App** — WebSocket + Redis pub/sub + React\n2. **URL Shortener** — with rate limiting, analytics dashboard, custom aliases\n3. **Portfolio Tracker** — live stock data via API, portfolio allocation charts\n4. **Mini Code Judge** — like LeetCode clone, sandboxed code execution\n\n### Decision\nGo with URL Shortener first — it covers system design, has clear scaling challenges, and shows full-stack capability. Deploy on AWS with Terraform.",
-     None),
 ]
 
-# ── Companies to track ────────────────────────────────────────────────────────
+# ── Tracked companies (exactly 8 companies) ──────────────────────────
 # (name, application_status, deadline_days_from_now, [done_checklist_keys])
 TRACKED_COMPANIES: list[tuple[str, str, int | None, list[str]]] = [
-    ("Google", "Interview Scheduled", 21, ["resume_tailored", "resume_ats_checked", "dsa_sheet_completed", "oa_practice_completed", "dbms_revised", "os_revised", "cn_revised", "oop_revised", "hr_questions_prepared", "projects_revised", "applied"]),
-    ("Meta", "OA Received", 10, ["resume_tailored", "resume_ats_checked", "dsa_sheet_completed", "applied"]),
-    ("Amazon", "Applied", None, ["resume_tailored", "resume_ats_checked", "applied"]),
-    ("Razorpay", "Researching", None, ["resume_tailored"]),
-    ("Stripe", "Not Started", None, []),
-    ("Swiggy", "Rejected", None, ["resume_tailored", "resume_ats_checked", "dsa_sheet_completed", "oa_practice_completed", "applied", "oa_received"]),
-]
-
-# ── Activity log entries ──────────────────────────────────────────────────────
-ACTIVITIES: list[tuple[str, str, dict | None]] = [
-    ("company_tracked", "company", {"company_name": "Google", "cluster": "FAANG", "application_status": "Interview Scheduled"}),
-    ("company_tracked", "company", {"company_name": "Meta", "cluster": "FAANG", "application_status": "OA Received"}),
-    ("company_tracked", "company", {"company_name": "Amazon", "cluster": "FAANG", "application_status": "Applied"}),
-    ("company_tracked", "company", {"company_name": "Razorpay", "cluster": "FinTech", "application_status": "Researching"}),
-    ("company_tracked", "company", {"company_name": "Stripe", "cluster": "FinTech", "application_status": "Not Started"}),
-    ("company_tracked", "company", {"company_name": "Swiggy", "cluster": "Product-based", "application_status": "Rejected"}),
-    ("company_status_changed", "company", {"company_name": "Swiggy", "previous_status": "Applied", "new_status": "Rejected"}),
-    ("dsa_solved", "dsa_problem", {"title": "Two Sum", "difficulty": "Easy", "platform": "LeetCode"}),
-    ("dsa_solved", "dsa_problem", {"title": "Maximum Subarray", "difficulty": "Medium", "platform": "LeetCode"}),
-    ("dsa_solved", "dsa_problem", {"title": "Number of Islands", "difficulty": "Medium", "platform": "LeetCode"}),
-    ("dsa_solved", "dsa_problem", {"title": "Course Schedule", "difficulty": "Medium", "platform": "LeetCode"}),
-    ("dsa_solved", "dsa_problem", {"title": "Longest Palindromic Substring", "difficulty": "Medium", "platform": "LeetCode"}),
-    ("note_created", "note", {"title": "Google Interview Strategy", "note_type": "Interview Note"}),
-    ("resource_added", "resource", {"title": "Striver's SDE Sheet", "category": "Coding Sheet"}),
-    ("resource_added", "resource", {"title": "System Design Primer", "category": "Notes"}),
+    ("Atlassian", "OA Received", 44, []),  # 0% (0 completed checks)
+    ("Razorpay", "Researching", 6, ["resume_tailored", "resume_ats_checked", "projects_revised"]),  # 20% (3 completed checks)
+    ("Microsoft", "Applied", 29, ["resume_tailored", "applied"]),  # 13.3% (2 completed checks)
+    ("Google", "Interview Scheduled", 13, ["resume_tailored", "resume_ats_checked", "applied", "dsa_sheet_completed", "oa_practice_completed", "interview_scheduled"]),  # 40% (6 completed checks)
+    ("Amazon", "Applied", None, []),  # 0% (0 completed checks)
+    ("Meta", "OA Received", None, []),  # 0% (0 completed checks)
+    ("Stripe", "Applied", None, []),  # 0% (0 completed checks)
+    ("Swiggy", "Rejected", None, []),  # Rejected (terminal)
 ]
 
 
@@ -149,20 +104,30 @@ async def seed_demo_data(session: AsyncSession) -> User:
     if existing is not None:
         # Wipe old demo data so updated dates take effect on re-seed
         await session.delete(existing)
-        await session.flush()
+        await session.commit()
 
     # ── 1. Demo user ──────────────────────────────────────────────────────────
     demo = User(
         email=DEMO_EMAIL,
         full_name=DEMO_FULL_NAME,
-        hashed_password=hash_password(DEMO_PASSWORD),
+        hashed_password=await hash_password(DEMO_PASSWORD),
         google_sub=None,
         is_active=True,
     )
     session.add(demo)
     await session.flush()
 
-    # ── 2. DSA tags (reuse existing, create missing) ───────────────────────
+    # ── 2. Mock Active Resume (for 40% Resume readiness) ──────────────────────
+    resume = Resume(
+        user_id=demo.id,
+        version_label="SDE Resume v1.0",
+        pdf_data=b"%PDF-1.4 mock pdf data",
+        is_active=True,
+    )
+    session.add(resume)
+    await session.flush()
+
+    # ── 3. DSA tags (reuse existing, create missing) ───────────────────────
     tag_names = [
         "Arrays", "Strings", "Trees", "Graphs", "Dynamic Programming",
         "Hash Maps", "Two Pointers", "Heaps", "Stacks", "Linked Lists",
@@ -177,22 +142,74 @@ async def seed_demo_data(session: AsyncSession) -> User:
             await session.flush()
         tag_map[name] = tag
 
-    # ── 3. DSA problems + tags ───────────────────────────────────────────────
-    problem_tag_pairs: list[tuple[DsaProblem, list[str]]] = []
+    # ── 4. Dynamic Date Set Formulator (guarantees streak & weekly target) ──────
     now = datetime.now(timezone.utc)
+    today = now.date()
+
+    # Base active dates to guarantee streak logic:
+    # - Today is active
+    # - Yesterday (today-1) and today-2 are inactive -> current streak = 1
+    # - days -3 to -9 are active -> longest streak = 7
+    # - day -10 is inactive
+    active_dates = {today}
+    for i in range(3, 10):
+        active_dates.add(today - timedelta(days=i))
+
+    # Add isolated active dates to prevent longer streaks, separated by >=2 days
+    monday_0 = today - timedelta(days=today.weekday())
+    for w in (2, 3, 4):
+        monday_w = monday_0 - timedelta(weeks=w)
+        for d_offset in (1, 2, 3, 4):
+            active_dates.add(monday_w + timedelta(days=d_offset))
+
+    # Map active dates by week ago:
+    def get_weeks_ago(d: date) -> int:
+        monday_d = d - timedelta(days=d.weekday())
+        monday_today = today - timedelta(days=today.weekday())
+        return (monday_today - monday_d).days // 7
+
+    active_dates_by_week = {i: [] for i in range(5)}
+    for d in active_dates:
+        wa = get_weeks_ago(d)
+        if wa in active_dates_by_week:
+            active_dates_by_week[wa].append(d)
+        else:
+            active_dates_by_week[4].append(d)
+
+    # Sort them deterministically
+    for wa in range(5):
+        active_dates_by_week[wa].sort()
+
+    # Calculate target counts per week:
+    week_targets = {0: 12, 1: 12, 2: 6, 3: 10, 4: 4}
+    date_counts = {d: 1 for d in active_dates}
+
+    week_current = {i: 0 for i in range(5)}
+    for d in active_dates:
+        wa = get_weeks_ago(d)
+        if wa in week_current:
+            week_current[wa] += 1
+
+    for wa in range(5):
+        needed = week_targets[wa] - week_current[wa]
+        if needed > 0 and active_dates_by_week[wa]:
+            date_counts[active_dates_by_week[wa][0]] += needed
+
+    # Solved dates for DSA problems:
+    # 18 problems, so we use all active dates except the oldest one
+    sorted_active_dates = sorted(list(active_dates))
+    solved_dates = [datetime.combine(d, datetime.min.time(), timezone.utc) + timedelta(hours=10) for d in sorted_active_dates[1:]]
+
+    # ── 5. DSA problems + tags ───────────────────────────────────────────────
+    problem_tag_pairs: list[tuple[DsaProblem, list[str]]] = []
+    solved_problem_info = []
     solved_idx = 0
-    # Spread solved dates evenly from June 18 to July 18
-    jun_18 = datetime(2026, 6, 18, tzinfo=timezone.utc)
-    solved_count = sum(1 for p in PROBLEMS if p[4] == "Solved")
-    solved_dates = [
-        jun_18 + timedelta(days=i * 29 // (solved_count - 1)) if solved_count > 1 else jun_18
-        for i in range(solved_count)
-    ]
     for title, platform, url, difficulty, status, revision, notes, tags in PROBLEMS:
         completed_at = None
         if status == "Solved":
             completed_at = solved_dates[solved_idx] if solved_idx < len(solved_dates) else now
             solved_idx += 1
+            solved_problem_info.append((title, difficulty, completed_at))
         problem = DsaProblem(
             user_id=demo.id,
             title=title,
@@ -215,7 +232,7 @@ async def seed_demo_data(session: AsyncSession) -> User:
                 session.add(DsaProblemTag(dsa_problem_id=problem.id, dsa_tag_id=tag.id))
     await session.flush()
 
-    # ── 4. Resources ──────────────────────────────────────────────────────────
+    # ── 6. Resources ──────────────────────────────────────────────────────────
     for title, url, category, description in RESOURCES:
         session.add(Resource(
             user_id=demo.id,
@@ -226,13 +243,27 @@ async def seed_demo_data(session: AsyncSession) -> User:
         ))
     await session.flush()
 
-    # ── 5. Notes ──────────────────────────────────────────────────────────────
+    # ── 7. Notes ──────────────────────────────────────────────────────────────
     for title, note_type, content, company_name in NOTES:
         company_id = None
         if company_name is not None:
             company = await session.scalar(select(Company).where(Company.name == company_name))
-            if company is not None:
-                company_id = company.id
+            # Create dynamically if missing (e.g. Microsoft)
+            if company is None:
+                company = Company(
+                    name=company_name,
+                    cluster="Product-based" if company_name in ("Atlassian", "Microsoft") else "FAANG",
+                    hiring_process="Standard hiring process",
+                    oa_pattern="Standard OA pattern",
+                    frequent_dsa_topics=["Arrays", "Hashing"],
+                    core_cs_subjects=["DBMS", "OS"],
+                    resume_requirements="Tailored resume",
+                    is_custom=False,
+                )
+                session.add(company)
+                await session.flush()
+            company_id = company.id
+
         session.add(Note(
             user_id=demo.id,
             title=title,
@@ -242,11 +273,23 @@ async def seed_demo_data(session: AsyncSession) -> User:
         ))
     await session.flush()
 
-    # ── 6. Tracked companies + checklist items ────────────────────────────────
-    for company_name, status, deadline_days, done_keys in TRACKED_COMPANIES:
+    # ── 8. Tracked companies + checklist items ────────────────────────────────
+    # Insert in order with increasing creation timestamps so sort order matches exactly
+    for idx, (company_name, status, deadline_days, done_keys) in enumerate(TRACKED_COMPANIES):
         company = await session.scalar(select(Company).where(Company.name == company_name))
         if company is None:
-            continue
+            company = Company(
+                name=company_name,
+                cluster="Product-based" if company_name in ("Atlassian", "Microsoft") else "FAANG",
+                hiring_process="Standard hiring process",
+                oa_pattern="Standard OA pattern",
+                frequent_dsa_topics=["Arrays", "Hashing"],
+                core_cs_subjects=["DBMS", "OS"],
+                resume_requirements="Tailored resume",
+                is_custom=False,
+            )
+            session.add(company)
+            await session.flush()
 
         deadline = None
         if deadline_days is not None:
@@ -257,6 +300,7 @@ async def seed_demo_data(session: AsyncSession) -> User:
             company_id=company.id,
             application_status=status,
             deadline=deadline,
+            created_at=now - timedelta(minutes=idx),
         )
         session.add(uc)
         await session.flush()
@@ -267,19 +311,79 @@ async def seed_demo_data(session: AsyncSession) -> User:
                 item_key=item_key,
                 label=label,
                 is_done=item_key in done_keys,
+                completed_at=now - timedelta(days=15) if item_key in done_keys else None
             ))
     await session.flush()
 
-    # ── 7. Activity log ───────────────────────────────────────────────────────
-    for action, entity_type, meta in ACTIVITIES:
-        entry = ActivityLog(
-            user_id=demo.id,
-            action=action,
-            entity_type=entity_type,
-            entity_id=None,
-            metadata_=meta,
-        )
-        session.add(entry)
+    # ── 9. Activity log (exactly 26 non-DSA activities, total 44 logs) ──────────
+    extra_activities = [
+        ("company_tracked", "company", {"company_name": "Swiggy", "cluster": "Product-based", "application_status": "Rejected"}),
+        ("company_tracked", "company", {"company_name": "Stripe", "cluster": "FinTech", "application_status": "Applied"}),
+        ("company_tracked", "company", {"company_name": "Meta", "cluster": "FAANG", "application_status": "OA Received"}),
+        ("company_tracked", "company", {"company_name": "Amazon", "cluster": "FAANG", "application_status": "Applied"}),
+        ("company_tracked", "company", {"company_name": "Google", "cluster": "FAANG", "application_status": "Interview Scheduled"}),
+        ("company_tracked", "company", {"company_name": "Razorpay", "cluster": "FinTech", "application_status": "Researching"}),
+        ("company_tracked", "company", {"company_name": "Atlassian", "cluster": "Product-based", "application_status": "OA Received"}),
+        ("company_tracked", "company", {"company_name": "Microsoft", "cluster": "Product-based", "application_status": "Applied"}),
+        
+        ("checklist_item_completed", "checklist", {"company_name": "Google", "item_key": "resume_tailored"}),
+        ("checklist_item_completed", "checklist", {"company_name": "Google", "item_key": "resume_ats_checked"}),
+        ("checklist_item_completed", "checklist", {"company_name": "Meta", "item_key": "resume_tailored"}),
+        ("checklist_item_completed", "checklist", {"company_name": "Meta", "item_key": "resume_ats_checked"}),
+        ("checklist_item_completed", "checklist", {"company_name": "Amazon", "item_key": "resume_tailored"}),
+        ("checklist_item_completed", "checklist", {"company_name": "Swiggy", "item_key": "resume_tailored"}),
+        
+        ("note_created", "note", {"title": "Google Interview Strategy", "note_type": "Interview Note"}),
+        ("note_created", "note", {"title": "Meta Onsite Preparation", "note_type": "Interview Note"}),
+        ("note_created", "note", {"title": "Dynamic Programming Patterns", "note_type": "Concept"}),
+        ("note_created", "note", {"title": "Graph Algorithms Quick Reference", "note_type": "Concept"}),
+        ("note_created", "note", {"title": "Week 12 Revision Plan", "note_type": "Revision Schedule"}),
+        ("note_created", "note", {"title": "Tell Me About Yourself — HR Prep", "note_type": "HR Answer"}),
+        
+        ("resource_added", "resource", {"title": "Google Careers", "category": "Career Portal"}),
+        ("resource_added", "resource", {"title": "LinkedIn Jobs", "category": "Career Portal"}),
+        ("resource_added", "resource", {"title": "Striver's SDE Sheet", "category": "Coding Sheet"}),
+        ("resource_added", "resource", {"title": "Blind 75", "category": "Coding Sheet"}),
+        ("resource_added", "resource", {"title": "InterviewBit", "category": "Interview Prep"}),
+        ("resource_added", "resource", {"title": "Pramp", "category": "Interview Prep"}),
+    ]
+
+    extra_idx = 0
+    solved_date_set = {sd.date() for sd in solved_dates}
+    for d in sorted_active_dates:
+        day_dt = datetime.combine(d, datetime.min.time(), timezone.utc) + timedelta(hours=12)
+        has_dsa = (d in solved_date_set)
+        needed_extra = date_counts[d] - 1 if has_dsa else date_counts[d]
+
+        if has_dsa:
+            p_title = "Two Sum"
+            p_diff = "Easy"
+            for title, diff, dt in solved_problem_info:
+                if dt.date() == d:
+                    p_title = title
+                    p_diff = diff
+                    break
+            session.add(ActivityLog(
+                user_id=demo.id,
+                action="dsa_solved",
+                entity_type="dsa_problem",
+                entity_id=None,
+                metadata_={"title": p_title, "difficulty": p_diff, "platform": "LeetCode"},
+                created_at=day_dt
+            ))
+
+        for k in range(needed_extra):
+            if extra_idx < len(extra_activities):
+                action, entity_type, meta = extra_activities[extra_idx]
+                extra_idx += 1
+                session.add(ActivityLog(
+                    user_id=demo.id,
+                    action=action,
+                    entity_type=entity_type,
+                    entity_id=None,
+                    metadata_=meta,
+                    created_at=day_dt + timedelta(hours=1 + k)
+                ))
 
     await session.commit()
     await session.refresh(demo)

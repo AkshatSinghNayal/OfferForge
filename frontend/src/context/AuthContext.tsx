@@ -21,6 +21,8 @@ import { authApi } from '@/api/auth'
 import { setAccessToken } from '@/api/client'
 import type { UserPublic } from '@/api/types'
 
+let bootstrapPromise: Promise<any> | null = null
+
 interface AuthState {
   user: UserPublic | null
   isAuthenticated: boolean
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   const login = useCallback((user: UserPublic, accessToken: string) => {
+    bootstrapPromise = null
     setAccessToken(accessToken)
     setState({ user, isAuthenticated: true, isLoading: false })
   }, [])
@@ -53,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Best effort — clear local state regardless.
     }
+    bootstrapPromise = null
     setAccessToken(null)
     setState({ user: null, isAuthenticated: false, isLoading: false })
   }, [])
@@ -63,12 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const bootstrap = async () => {
       try {
-        const data = await authApi.refresh()
+        if (!bootstrapPromise) {
+          bootstrapPromise = authApi.refresh()
+        }
+        const data = await bootstrapPromise
         if (cancelled) return
         setAccessToken(data.access_token)
         setState({ user: data.user, isAuthenticated: true, isLoading: false })
       } catch {
         if (cancelled) return
+        bootstrapPromise = null
         setAccessToken(null)
         setState({ user: null, isAuthenticated: false, isLoading: false })
       }
@@ -84,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // when a refresh fails mid-session.
   useEffect(() => {
     const handleForcedLogout = () => {
+      bootstrapPromise = null
       setAccessToken(null)
       setState({ user: null, isAuthenticated: false, isLoading: false })
     }
