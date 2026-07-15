@@ -147,7 +147,9 @@ async def seed_demo_data(session: AsyncSession) -> User:
     """Seed demo data if it does not yet exist. Returns the demo user."""
     existing = await session.scalar(select(User).where(User.email == DEMO_EMAIL))
     if existing is not None:
-        return existing
+        # Wipe old demo data so updated dates take effect on re-seed
+        await session.delete(existing)
+        await session.flush()
 
     # ── 1. Demo user ──────────────────────────────────────────────────────────
     demo = User(
@@ -176,11 +178,13 @@ async def seed_demo_data(session: AsyncSession) -> User:
     # ── 3. DSA problems + tags ───────────────────────────────────────────────
     problem_tag_pairs: list[tuple[DsaProblem, list[str]]] = []
     now = datetime.now(timezone.utc)
-    # Stagger completion dates so the cumulative chart looks realistic
     solved_idx = 0
+    # Spread solved dates evenly from June 18 to July 18
+    jun_18 = datetime(2026, 6, 18, tzinfo=timezone.utc)
+    solved_count = sum(1 for p in PROBLEMS if p[4] == "Solved")
     solved_dates = [
-        now - timedelta(days=d)
-        for d in [90, 85, 82, 78, 75, 72, 68, 65, 62, 58, 55, 52, 48, 45, 42, 38, 35, 32, 28, 25, 22, 18, 15, 12, 8, 5, 2]
+        jun_18 + timedelta(days=i * 29 // (solved_count - 1)) if solved_count > 1 else jun_18
+        for i in range(solved_count)
     ]
     for title, platform, url, difficulty, status, revision, notes, tags in PROBLEMS:
         completed_at = None
