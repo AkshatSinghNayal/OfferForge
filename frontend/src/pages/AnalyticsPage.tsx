@@ -107,10 +107,10 @@ export default function AnalyticsPage() {
     [summary]
   )
 
+  // Blue-toned palette using accent + opacity variations
   const donutColors = [
-    'var(--accent)', 'var(--success)', 'var(--warning)',
-    'var(--danger)', 'var(--text-secondary)', 'var(--accent)',
-    'var(--success)', 'var(--warning)',
+    '#3B82F6', '#60A5FA', '#93C5FD', '#2563EB',
+    '#1D4ED8', '#7DD3FC', '#38BDF8', '#818CF8',
   ]
 
   // Difficulty breakdown
@@ -241,7 +241,7 @@ export default function AnalyticsPage() {
                     <XAxis dataKey="iso_week" tick={AXIS_TICK_STYLE} tickFormatter={w => `W${w.split('-W')[1] ?? w}`} interval="preserveStartEnd" />
                     <YAxis tick={AXIS_TICK_STYLE} allowDecimals={false} />
                     <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [v, 'Activities']} />
-                    <Bar dataKey="activity_count" fill="var(--success)" radius={[4, 4, 0, 0]} name="Activities" />
+                    <Bar dataKey="activity_count" fill="var(--accent)" radius={[4, 4, 0, 0]} name="Activities" />
                   </BarChart>
                 </ResponsiveContainer>
               )
