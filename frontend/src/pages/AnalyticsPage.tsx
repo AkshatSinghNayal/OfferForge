@@ -26,8 +26,6 @@ function StreakGraph({ data }: { data: { date: string; count: number }[] }) {
 
   const countMap = new Map(data.map(d => [d.date, d.count]))
 
-  const maxCount = Math.max(1, ...data.map(d => d.count))
-
   const chartData = days.map(d => ({
     date: format(d, 'MMM d'),
     fullDate: format(d, 'yyyy-MM-dd'),
