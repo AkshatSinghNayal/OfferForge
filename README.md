@@ -10,9 +10,9 @@ A professional placement preparation hub — DSA tracking, company checklists, r
 |:-:|
 | ![](frontend/public/screenshots/DesktopDashboardd.png) |
 
-| Mobile Dashboard | Mobile More |
+| Mobile Dashboard | Analytics |
 |:-:|:-:|
-| ![](frontend/public/screenshots/mobile-dashboardd.jpg) | ![](frontend/public/screenshots/mobile-more.jpg) |
+| ![](frontend/public/screenshots/mobile-dashboardd.jpg) | ![](frontend/public/screenshots/mobile-moree.jpg) |
 
 ---
 
