@@ -234,13 +234,10 @@ async def google_callback(
         return resp
 
     resp = RedirectResponse(
-        f"{settings.FRONTEND_URL}/auth/google/callback?success=1",
+        f"{settings.FRONTEND_URL}/auth/google/callback?token={access}&success=1",
         status_code=status.HTTP_302_FOUND,
     )
     set_refresh_cookie(resp, raw_refresh)
-    # We don't return the access token in the URL (leak risk). The frontend
-    # will call POST /auth/refresh on load to get a fresh access token using
-    # the just-set cookie.
     return resp
 
 

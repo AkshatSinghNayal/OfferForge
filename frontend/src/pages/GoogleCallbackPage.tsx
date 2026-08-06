@@ -10,6 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { authApi } from '@/api/auth'
+import { setAccessToken } from '@/api/client'
 import { useAuth } from '@/context/AuthContext'
 
 export default function GoogleCallbackPage() {
@@ -22,11 +23,28 @@ export default function GoogleCallbackPage() {
     if (calledRef.current) return
     calledRef.current = true
 
+    const token = searchParams.get('token')
     const success = searchParams.get('success')
 
-    if (success !== '1') {
+    if (success !== '1' && !token) {
       toast.error('Google sign-in failed.')
       navigate('/login', { replace: true })
+      return
+    }
+
+    if (token) {
+      setAccessToken(token)
+      authApi
+        .me()
+        .then((user) => {
+          login(user, token)
+          toast.success(`Welcome, ${user.full_name.split(' ')[0]}!`)
+          navigate('/dashboard', { replace: true })
+        })
+        .catch(() => {
+          toast.error('Failed to complete sign-in. Please try again.')
+          navigate('/login', { replace: true })
+        })
       return
     }
 
