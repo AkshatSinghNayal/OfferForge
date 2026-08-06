@@ -27,6 +27,9 @@ Follow them in order — each step depends on values from the previous one.
    > ⚠️ The URL Render gives you starts with `postgres://`. The backend needs
    > `postgresql+asyncpg://`. Replace the scheme manually:
    > `postgres://` → `postgresql+asyncpg://`
+   >
+   > ⚠️ If you are using Render's **External Database URL** (or any cloud PostgreSQL provider like Supabase/Neon/RDS), SSL is required.
+   > Append `?sslmode=require` to the URL (e.g. `postgresql+asyncpg://user:pass@host/db?sslmode=require`) or set `DB_SSLMODE=require` in your Render Environment Variables.
 
 ---
 

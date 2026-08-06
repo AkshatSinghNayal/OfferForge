@@ -77,6 +77,13 @@ async def run_migrations_online() -> None:
     connect_args: dict = {}
     if settings.DB_SCHEMA:
         connect_args["server_settings"] = {"search_path": settings.DB_SCHEMA}
+    if settings.DB_SSLMODE and "sslmode=" not in settings.DATABASE_URL and "ssl=" not in settings.DATABASE_URL:
+        ssl_val: str | bool = settings.DB_SSLMODE
+        if settings.DB_SSLMODE.lower() in ("true", "1"):
+            ssl_val = True
+        elif settings.DB_SSLMODE.lower() in ("false", "0"):
+            ssl_val = False
+        connect_args["ssl"] = ssl_val
 
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),

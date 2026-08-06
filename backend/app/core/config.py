@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # When set, the app sets search_path on every connection so all DDL/DML
     # targets this schema instead of "public".
     DB_SCHEMA: str = Field(default="")
+    # Optional Postgres SSL mode (e.g. "require", "prefer", "disable", "verify-full").
+    # Use "require" for cloud PostgreSQL services like Render External DB, Neon, Supabase.
+    DB_SSLMODE: str = Field(default="")
 
     # --- JWT ---
     # Phase 2 correction to Phase A open decision #3: refresh TTL is 7 days,

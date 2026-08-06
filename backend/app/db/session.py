@@ -16,9 +16,17 @@ from app.db.base import Base
 
 # Build connect_args: if DB_SCHEMA is set, tell asyncpg to set search_path
 # so all DDL/DML targets that schema instead of "public".
+# If DB_SSLMODE is set and not already present in DATABASE_URL, set ssl mode.
 _connect_args: dict = {}
 if settings.DB_SCHEMA:
     _connect_args["server_settings"] = {"search_path": settings.DB_SCHEMA}
+if settings.DB_SSLMODE and "sslmode=" not in settings.DATABASE_URL and "ssl=" not in settings.DATABASE_URL:
+    ssl_val: str | bool = settings.DB_SSLMODE
+    if settings.DB_SSLMODE.lower() in ("true", "1"):
+        ssl_val = True
+    elif settings.DB_SSLMODE.lower() in ("false", "0"):
+        ssl_val = False
+    _connect_args["ssl"] = ssl_val
 
 # Module-level async engine. Created once at import time; reused for the
 # lifetime of the process. Pool parameters are conservative defaults —

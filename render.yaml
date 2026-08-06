@@ -29,6 +29,9 @@ services:
       - key: DATABASE_URL
         sync: false
 
+      - key: DB_SSLMODE
+        value: require
+
       - key: APP_ENV
         value: prod
 
