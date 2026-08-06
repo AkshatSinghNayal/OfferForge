@@ -11,6 +11,8 @@ import type {
   UserPublic,
 } from './types'
 
+let activeRefreshPromise: Promise<TokenResponse> | null = null
+
 export const authApi = {
   signup: (body: SignupRequest) =>
     apiPost<TokenResponse>('/auth/signup', body),
@@ -18,8 +20,14 @@ export const authApi = {
   login: (body: LoginRequest) =>
     apiPost<TokenResponse>('/auth/login', body),
 
-  refresh: () =>
-    apiPost<TokenResponse>('/auth/refresh'),
+  refresh: () => {
+    if (!activeRefreshPromise) {
+      activeRefreshPromise = apiPost<TokenResponse>('/auth/refresh').finally(() => {
+        activeRefreshPromise = null
+      })
+    }
+    return activeRefreshPromise
+  },
 
   logout: () =>
     apiPost<MessageResponse>('/auth/logout'),

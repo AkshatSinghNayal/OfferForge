@@ -5,7 +5,7 @@
  * refresh token already set as an httpOnly cookie. We just need to call
  * POST /auth/refresh to exchange the cookie for an access token.
  */
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,8 +16,12 @@ export default function GoogleCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { login } = useAuth()
+  const calledRef = useRef(false)
 
   useEffect(() => {
+    if (calledRef.current) return
+    calledRef.current = true
+
     const success = searchParams.get('success')
 
     if (success !== '1') {
