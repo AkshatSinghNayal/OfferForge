@@ -85,6 +85,10 @@ class Settings(BaseSettings):
         elif v.startswith("postgresql://"):
             v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
         
+        # asyncpg requires parameter name 'ssl', not 'sslmode'
+        if "sslmode=" in v:
+            v = v.replace("sslmode=", "ssl=")
+
         if not v.startswith("postgresql+asyncpg://"):
             raise ValueError(
                 "DATABASE_URL must use the asyncpg driver "
