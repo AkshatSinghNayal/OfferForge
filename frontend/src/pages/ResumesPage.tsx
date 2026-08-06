@@ -232,18 +232,11 @@ export default function ResumesPage() {
             </a>
           </DialogHeader>
           <div className="flex-1 px-4 pb-4">
-            <object
-              data={pdfUrl ?? ''}
-              type="application/pdf"
+            <iframe
+              src={pdfUrl ?? ''}
+              title="Resume Preview"
               className="w-full h-full rounded border border-[var(--border)]"
-            >
-              <p className="text-sm text-[var(--text-muted)] p-4">
-                Your browser cannot display this PDF inline.{' '}
-                <a href={pdfUrl ?? ''} download className="text-[var(--accent)] underline">
-                  Download instead
-                </a>
-              </p>
-            </object>
+            />
           </div>
         </DialogContent>
       </Dialog>

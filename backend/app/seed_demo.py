@@ -98,13 +98,35 @@ TRACKED_COMPANIES: list[tuple[str, str, int | None, list[str]]] = [
 ]
 
 
+DEMO_PDF_BYTES = (
+    b"%PDF-1.4\n"
+    b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+    b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+    b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n"
+    b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
+    b"5 0 obj\n<< /Length 400 >>\nstream\n"
+    b"BT\n"
+    b"/F1 20 Tf\n50 720 Td\n(Alex Morgan - Software Engineer) Tj\n"
+    b"0 -30 Td\n/F1 11 Tf\n(Email: alex.morgan@example.com | Phone: +1-555-0199 | Location: San Francisco, CA) Tj\n"
+    b"0 -35 Td\n/F1 14 Tf\n(SUMMARY) Tj\n"
+    b"0 -18 Td\n/F1 10 Tf\n(Passionate Software Engineer with experience in FastAPI, React, PostgreSQL, and AWS.) Tj\n"
+    b"0 -30 Td\n/F1 14 Tf\n(EXPERIENCE) Tj\n"
+    b"0 -18 Td\n/F1 11 Tf\n(Software Engineer Intern - CloudTech Inc) Tj\n"
+    b"0 -15 Td\n/F1 10 Tf\n(- Developed REST APIs using FastAPI and PostgreSQL handling 10k+ daily requests.) Tj\n"
+    b"0 -15 Td\n/F1 10 Tf\n(- Built responsive React dashboard components using TypeScript and Tailwind CSS.) Tj\n"
+    b"0 -30 Td\n/F1 14 Tf\n(SKILLS) Tj\n"
+    b"0 -18 Td\n/F1 10 Tf\n(Python, TypeScript, React, FastAPI, PostgreSQL, Docker, Git, AWS) Tj\n"
+    b"ET\nendstream\nendobj\n"
+    b"xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000244 00000 n \n0000000315 00000 n \n"
+    b"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n765\n%%EOF"
+)
+
+
 async def seed_demo_data(session: AsyncSession) -> User:
     """Seed demo data if it does not yet exist. Returns the demo user."""
     existing = await session.scalar(select(User).where(User.email == DEMO_EMAIL))
     if existing is not None:
-        # Wipe old demo data so updated dates take effect on re-seed
-        await session.delete(existing)
-        await session.commit()
+        return existing
 
     # ── 1. Demo user ──────────────────────────────────────────────────────────
     demo = User(
@@ -121,7 +143,7 @@ async def seed_demo_data(session: AsyncSession) -> User:
     resume = Resume(
         user_id=demo.id,
         version_label="SDE Resume v1.0",
-        pdf_data=b"%PDF-1.4 mock pdf data",
+        pdf_data=DEMO_PDF_BYTES,
         is_active=True,
     )
     session.add(resume)
