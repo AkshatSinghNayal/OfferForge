@@ -30,26 +30,17 @@ export default function GoogleCallbackPage() {
       return
     }
 
-    let cancelled = false
-
-    const finish = async () => {
-      try {
-        const data = await authApi.refresh()
-        if (cancelled) return
+    authApi
+      .refresh()
+      .then((data) => {
         login(data.user, data.access_token)
         toast.success(`Welcome, ${data.user.full_name.split(' ')[0]}!`)
         navigate('/dashboard', { replace: true })
-      } catch {
-        if (cancelled) return
+      })
+      .catch(() => {
         toast.error('Failed to complete sign-in. Please try again.')
         navigate('/login', { replace: true })
-      }
-    }
-
-    void finish()
-    return () => {
-      cancelled = true
-    }
+      })
   }, [searchParams, navigate, login])
 
   return (
