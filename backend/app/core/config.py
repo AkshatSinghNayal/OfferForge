@@ -89,6 +89,12 @@ class Settings(BaseSettings):
         if "sslmode=" in v:
             v = v.replace("sslmode=", "ssl=")
 
+        # asyncpg does not support channel_binding query param from Neon DSNs
+        import re
+        v = re.sub(r"[?&]channel_binding=[^&]*", "", v)
+        if "?" not in v and "&" in v:
+            v = v.replace("&", "?", 1)
+
         if not v.startswith("postgresql+asyncpg://"):
             raise ValueError(
                 "DATABASE_URL must use the asyncpg driver "
