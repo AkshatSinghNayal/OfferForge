@@ -35,6 +35,7 @@ engine: AsyncEngine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.APP_ENV == "dev",  # log SQL in dev only
     pool_pre_ping=True,  # recover from idle-in-transaction / DB restarts
+    pool_recycle=300,    # recycle stale connections older than 5 minutes (prevents sleep disconnects)
     pool_size=5,
     max_overflow=10,
     connect_args=_connect_args,

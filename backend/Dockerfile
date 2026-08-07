@@ -35,7 +35,6 @@ COPY . .
 # Expose FastAPI default port.
 EXPOSE 8000
 
-# Run alembic migrations on container start, then boot uvicorn.
-# In production we recommend running migrations as a separate Release command
-# on Render, but for local docker-compose this entrypoint keeps things simple.
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Make start script executable and run on container boot
+RUN chmod +x /app/start.sh
+CMD ["/app/start.sh"]
