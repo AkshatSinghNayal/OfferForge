@@ -24,10 +24,12 @@ class ResumePublic(BaseModel):
 
 
 class ResumeWithScore(ResumePublic):
-    """Resume + computed readiness score."""
+    """Resume + computed readiness score + optional latest job match score."""
 
     keyword_coverage_pct: float
     readiness_score: float
+    latest_match_score: int | None = None
+    latest_job_title: str | None = None
 
 
 class ResumeList(BaseModel):

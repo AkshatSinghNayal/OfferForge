@@ -194,6 +194,18 @@ export default function ResumesPage() {
                     <span className="text-[var(--text-primary)]">{r.readiness_score.toFixed(0)}%</span>
                   </div>
                   <Progress value={r.readiness_score} className="h-1.5" />
+                  {r.latest_match_score !== undefined && r.latest_match_score !== null && (
+                    <div className="mt-2.5 p-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-xs">
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-[var(--text-muted)] truncate max-w-[130px]" title={r.latest_job_title || 'Recent Job'}>
+                          Match ({r.latest_job_title || 'Recent Job'})
+                        </span>
+                        <span className={`font-semibold ${r.latest_match_score >= 70 ? 'text-emerald-400' : r.latest_match_score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                          {r.latest_match_score}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button
                   size="sm"

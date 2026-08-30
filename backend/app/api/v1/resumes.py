@@ -61,7 +61,13 @@ def _resume_to_public(resume) -> ResumePublic:
     )
 
 
-def _resume_with_score(resume, coverage: float, score: float) -> ResumeWithScore:
+def _resume_with_score(
+    resume,
+    coverage: float,
+    score: float,
+    latest_match_score: int | None = None,
+    latest_job_title: str | None = None,
+) -> ResumeWithScore:
     return ResumeWithScore(
         id=resume.id,
         user_id=resume.user_id,
@@ -72,6 +78,8 @@ def _resume_with_score(resume, coverage: float, score: float) -> ResumeWithScore
         updated_at=resume.updated_at,
         keyword_coverage_pct=coverage,
         readiness_score=score,
+        latest_match_score=latest_match_score,
+        latest_job_title=latest_job_title,
     )
 
 
@@ -110,7 +118,7 @@ async def list_resumes(
     """List all of the user's resumes with computed readiness scores."""
     rows = await resume_service.list_resumes(session, user=current_user)
     return ResumeList(
-        items=[_resume_with_score(r, cov, score) for r, cov, score in rows]
+        items=[_resume_with_score(r, cov, score, l_score, l_title) for r, cov, score, l_score, l_title in rows]
     )
 
 

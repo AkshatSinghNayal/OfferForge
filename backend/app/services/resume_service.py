@@ -232,10 +232,10 @@ async def upload_resume(
 # List / get
 # ---------------------------------------------------------------------------
 
-async def list_resumes(session: AsyncSession, *, user: User) -> list[tuple[Resume, float, float]]:
+async def list_resumes(session: AsyncSession, *, user: User) -> list[tuple[Resume, float, float, int | None, str | None]]:
     """List all of the user's resumes with computed readiness scores.
 
-    Returns a list of (resume, keyword_coverage_pct, readiness_score) tuples.
+    Returns a list of (resume, keyword_coverage_pct, readiness_score, latest_match_score, latest_job_title) tuples.
     """
     resumes = (
         await session.scalars(
@@ -246,22 +246,28 @@ async def list_resumes(session: AsyncSession, *, user: User) -> list[tuple[Resum
     # Single has_active check for the whole list (any resume is_active).
     has_active = any(r.is_active for r in resumes)
 
-    result: list[tuple[Resume, float, float]] = []
+    result: list[tuple[Resume, float, float, int | None, str | None]] = []
     for r in resumes:
         total, present = await _keyword_counts(session, r.id)
-        latest_match_score = await session.scalar(
-            select(ResumeJobMatchAnalysis.overall_score)
-            .where(ResumeJobMatchAnalysis.resume_id == r.id)
-            .order_by(ResumeJobMatchAnalysis.created_at.desc())
-            .limit(1)
-        )
+        latest_match = (
+            await session.execute(
+                select(ResumeJobMatchAnalysis.overall_score, ResumeJobMatchAnalysis.job_title)
+                .where(ResumeJobMatchAnalysis.resume_id == r.id)
+                .order_by(ResumeJobMatchAnalysis.created_at.desc())
+                .limit(1)
+            )
+        ).first()
+
+        latest_match_score = latest_match[0] if latest_match else None
+        latest_job_title = latest_match[1] if latest_match else None
+
         coverage, score, _ = _compute_readiness(
             keyword_total=total,
             keyword_present=present,
             has_active_resume=has_active,
             latest_match_score=latest_match_score,
         )
-        result.append((r, coverage, score))
+        result.append((r, coverage, score, latest_match_score, latest_job_title))
     return result
 
 

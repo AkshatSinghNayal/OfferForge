@@ -13,6 +13,8 @@ export interface ResumePublic {
 export interface ResumeWithScore extends ResumePublic {
   keyword_coverage_pct: number
   readiness_score: number
+  latest_match_score?: number | null
+  latest_job_title?: string | null
 }
 
 export interface ResumeList {
