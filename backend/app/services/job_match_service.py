@@ -166,7 +166,6 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
                     system_instruction=SYSTEM_INSTRUCTION,
                     response_mime_type="application/json",
                     response_schema=GeminiJobExtraction,
-                    temperature=0,
                     max_output_tokens=8192,
                 ),
             )
