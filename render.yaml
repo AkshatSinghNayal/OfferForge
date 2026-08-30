@@ -65,6 +65,8 @@ services:
 
       - key: GEMINI_MODEL
         value: gemini-3.7-flash
+      - key: GEMINI_FALLBACK_MODEL
+        value: gemini-3.5-flash
 
       - key: CLOUDINARY_CLOUD_NAME
         sync: false

@@ -138,7 +138,9 @@ def _compute_scores(requirements: list[GeminiRequirement]) -> tuple[int, list[di
     return max(0, min(100, score)), breakdown
 
 
-async def _extract_with_gemini(*, pdf_data: bytes, request: JobMatchRequest) -> GeminiJobExtraction:
+async def _extract_with_gemini(
+    *, pdf_data: bytes, request: JobMatchRequest
+) -> tuple[GeminiJobExtraction, str]:
     if not settings.GEMINI_API_KEY:
         raise GeminiNotConfiguredError("Gemini analysis is not configured")
 
@@ -154,21 +156,36 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
 """.strip()
 
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    model_used = settings.GEMINI_MODEL
+
+    async def generate(model: str):
+        return await client.aio.models.generate_content(
+            model=model,
+            contents=[
+                types.Part.from_bytes(data=pdf_data, mime_type="application/pdf"),
+                prompt,
+            ],
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION,
+                response_mime_type="application/json",
+                response_schema=GeminiJobExtraction,
+                max_output_tokens=8192,
+            ),
+        )
+
     try:
         async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):
-            response = await client.aio.models.generate_content(
-                model=settings.GEMINI_MODEL,
-                contents=[
-                    types.Part.from_bytes(data=pdf_data, mime_type="application/pdf"),
-                    prompt,
-                ],
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_INSTRUCTION,
-                    response_mime_type="application/json",
-                    response_schema=GeminiJobExtraction,
-                    max_output_tokens=8192,
-                ),
-            )
+            try:
+                response = await generate(model_used)
+            except genai_errors.ServerError:
+                fallback = settings.GEMINI_FALLBACK_MODEL.strip()
+                if not fallback or fallback == model_used:
+                    raise
+                logger.warning(
+                    "Gemini model %s failed; retrying with %s", model_used, fallback
+                )
+                model_used = fallback
+                response = await generate(model_used)
     except TimeoutError as exc:
         raise GeminiAnalysisError("Gemini analysis timed out; please try again") from exc
     except genai_errors.APIError as exc:
@@ -205,7 +222,7 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
     try:
         if not response.text:
             raise ValueError("empty Gemini response")
-        return GeminiJobExtraction.model_validate_json(response.text)
+        return GeminiJobExtraction.model_validate_json(response.text), model_used
     except (ValidationError, ValueError) as exc:
         logger.warning("Gemini returned an invalid job-match response", exc_info=True)
         raise GeminiAnalysisError("Gemini returned an invalid analysis; please try again") from exc
@@ -253,7 +270,9 @@ async def analyze_resume(
             f"Analysis limit reached ({settings.GEMINI_ANALYSES_PER_HOUR} per hour); please try later"
         )
 
-    extraction = await _extract_with_gemini(pdf_data=resume.pdf_data, request=request)
+    extraction, model_used = await _extract_with_gemini(
+        pdf_data=resume.pdf_data, request=request
+    )
 
     # Never award evidence credit when the provider did not return evidence.
     # This also makes malformed/hallucinated matches fail closed.
@@ -279,7 +298,7 @@ async def analyze_resume(
         confidence=extraction.confidence,
         summary=extraction.summary,
         result=result,
-        model_name=settings.GEMINI_MODEL,
+        model_name=model_used,
         prompt_version=PROMPT_VERSION,
     )
     session.add(analysis)

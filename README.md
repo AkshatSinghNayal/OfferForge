@@ -71,6 +71,7 @@ placed in a `VITE_*` frontend variable.
 ```env
 GEMINI_API_KEY=your_complete_key
 GEMINI_MODEL=gemini-3.7-flash
+GEMINI_FALLBACK_MODEL=gemini-3.5-flash
 ```
 
 After a resume is uploaded, paste a job description to receive an estimated
