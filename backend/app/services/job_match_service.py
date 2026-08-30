@@ -71,23 +71,23 @@ Rules:
 
 
 class GeminiRequirement(BaseModel):
-    requirement: str = Field(min_length=2, max_length=300)
+    requirement: str
     category: Literal["skills", "experience", "education", "responsibilities", "domain", "other"]
     importance: Literal["required", "preferred"]
     status: Literal["matched", "partial", "missing"]
-    evidence: list[str] = Field(default_factory=list, max_length=3)
-    gap: str | None = Field(default=None, max_length=400)
-    recommendation: str | None = Field(default=None, max_length=400)
+    evidence: list[str] = Field(default_factory=list)
+    gap: str | None = None
+    recommendation: str | None = None
 
 
 class GeminiJobExtraction(BaseModel):
-    inferred_job_title: str | None = Field(default=None, max_length=160)
-    inferred_company_name: str | None = Field(default=None, max_length=160)
+    inferred_job_title: str | None = None
+    inferred_company_name: str | None = None
     confidence: Literal["low", "medium", "high"]
-    summary: str = Field(min_length=20, max_length=700)
-    requirements: list[GeminiRequirement] = Field(min_length=1, max_length=40)
-    strengths: list[str] = Field(default_factory=list, max_length=6)
-    recommendations: list[str] = Field(default_factory=list, max_length=6)
+    summary: str
+    requirements: list[GeminiRequirement]
+    strengths: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
 
 
 class GeminiNotConfiguredError(Exception):
@@ -193,8 +193,14 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
     for model in candidate_models:
         model_used = model
         try:
-            async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):
-                response = await anyio.to_thread.run_sync(_sync_generate, model)
+            if hasattr(asyncio, "timeout"):
+                async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):
+                    response = await anyio.to_thread.run_sync(_sync_generate, model)
+            else:
+                response = await asyncio.wait_for(
+                    anyio.to_thread.run_sync(_sync_generate, model),
+                    timeout=settings.GEMINI_TIMEOUT_SECONDS,
+                )
 
             if not response.text:
                 raise ValueError("empty Gemini response")
@@ -218,7 +224,12 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
                     "Gemini's API quota is exhausted; please try again later"
                 ) from exc
 
-            # For 400 (invalid argument / invalid model), 404 (model not found), 500, 503:
+            msg_lower = (exc.message or "").lower()
+            if "document has no pages" in msg_lower or "pdf" in msg_lower:
+                raise GeminiAnalysisError(
+                    "The uploaded resume PDF could not be read or contains no readable pages. Please re-upload a valid PDF resume."
+                ) from exc
+
             logger.warning(
                 "Gemini model %s failed with code %s (%s); trying fallback model",
                 model,
