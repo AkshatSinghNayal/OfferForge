@@ -161,8 +161,9 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
         settings.GEMINI_MODEL,
         settings.GEMINI_FALLBACK_MODEL,
         "gemini-2.5-flash",
-        "gemini-1.5-flash",
-        "gemini-2.0-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
     ]
     candidate_models: list[str] = []
     for m in raw_candidates:
