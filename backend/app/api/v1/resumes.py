@@ -16,6 +16,9 @@ from app.core.deps import get_current_user
 from app.db.session import get_async_session
 from app.models.user import User
 from app.schemas.resumes import (
+    JobMatchAnalysisList,
+    JobMatchAnalysisPublic,
+    JobMatchRequest,
     KeywordCreate,
     KeywordPublic,
     KeywordUpdate,
@@ -26,7 +29,12 @@ from app.schemas.resumes import (
     ResumePublic,
     ResumeWithScore,
 )
-from app.services import resume_service
+from app.services import job_match_service, resume_service
+from app.services.job_match_service import (
+    GeminiAnalysisError,
+    GeminiNotConfiguredError,
+    GeminiRateLimitError,
+)
 from app.services.resume_service import (
     InvalidFileError,
     KeywordNotFound,
@@ -236,6 +244,78 @@ async def map_company(
     except UserCompanyNotOwnedError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return ResumeCompanyMapPublic.model_validate(mapping)
+
+
+# ---------------------------------------------------------------------------
+# Job-specific AI analysis
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/{resume_id}/job-match",
+    response_model=JobMatchAnalysisPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+async def analyze_job_match(
+    resume_id: uuid.UUID,
+    body: JobMatchRequest,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Compare an owned resume with a JD using evidence extracted by Gemini."""
+    try:
+        data = await job_match_service.analyze_resume(
+            session, user=current_user, resume_id=resume_id, request=body
+        )
+    except ResumeNotFound as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except GeminiNotConfiguredError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except GeminiRateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+            headers={"Retry-After": "3600"},
+        )
+    except GeminiAnalysisError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+    return JobMatchAnalysisPublic(**data)
+
+
+@router.get("/{resume_id}/job-matches", response_model=JobMatchAnalysisList)
+async def list_job_matches(
+    resume_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    try:
+        items = await job_match_service.list_analyses(
+            session, user=current_user, resume_id=resume_id
+        )
+    except ResumeNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resume not found")
+    return JobMatchAnalysisList(items=[JobMatchAnalysisPublic(**item) for item in items])
+
+
+@router.delete(
+    "/{resume_id}/job-matches/{analysis_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_job_match(
+    resume_id: uuid.UUID,
+    analysis_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    try:
+        await job_match_service.delete_analysis(
+            session,
+            user=current_user,
+            resume_id=resume_id,
+            analysis_id=analysis_id,
+        )
+    except ResumeNotFound as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return None
 
 
 # ---------------------------------------------------------------------------

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, Index, LargeBinary, String, Text, func, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, LargeBinary, String, Text, func, text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -38,6 +38,9 @@ class Resume(Base, TimestampMixin):
         back_populates="resume", cascade="all, delete-orphan"
     )
     company_mappings: Mapped[list[ResumeCompanyMap]] = relationship(
+        back_populates="resume", cascade="all, delete-orphan"
+    )
+    job_match_analyses: Mapped[list[ResumeJobMatchAnalysis]] = relationship(
         back_populates="resume", cascade="all, delete-orphan"
     )
 
@@ -111,4 +114,40 @@ class ResumeCompanyMap(Base, TimestampMixin):
             unique=True,
         ),
         Index("ix_resume_company_map_uc", "user_company_id"),
+    )
+
+
+class ResumeJobMatchAnalysis(Base, TimestampMixin):
+    """A versioned, explainable comparison between one resume and one JD."""
+
+    __tablename__ = "resume_job_match_analyses"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
+    )
+    resume_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("resumes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    job_title: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    company_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    job_description: Mapped[str] = mapped_column(Text, nullable=False)
+    overall_score: Mapped[int] = mapped_column(Integer, nullable=False)
+    confidence: Mapped[str] = mapped_column(String(16), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    result: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    model_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    resume: Mapped[Resume] = relationship(back_populates="job_match_analyses")
+
+    __table_args__ = (
+        Index("ix_resume_job_match_user_created", "user_id", "created_at"),
+        Index("ix_resume_job_match_resume_created", "resume_id", "created_at"),
     )

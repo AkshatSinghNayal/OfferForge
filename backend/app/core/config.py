@@ -60,6 +60,13 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = Field(default="")
     GOOGLE_CLIENT_SECRET: str = Field(default="")
 
+    # --- Gemini resume analysis ---
+    # Server-side only. Never expose this value through a VITE_* variable.
+    GEMINI_API_KEY: str = Field(default="")
+    GEMINI_MODEL: str = Field(default="gemini-3.7-flash")
+    GEMINI_TIMEOUT_SECONDS: float = Field(default=45.0, ge=5.0, le=120.0)
+    GEMINI_ANALYSES_PER_HOUR: int = Field(default=10, ge=1, le=100)
+
     # --- Cloudinary ---
     CLOUDINARY_CLOUD_NAME: str = Field(default="")
     CLOUDINARY_API_KEY: str = Field(default="")

@@ -2,10 +2,8 @@
  * Resumes page.
  *
  * Upload: uses real /resumes/upload endpoint (multipart/form-data).
- * Cloudinary credentials are stored in the backend .env — the frontend
- * never touches them. If CLOUDINARY_CLOUD_NAME etc. are not set in the
- * backend .env, the upload call will succeed at the API layer but
- * Cloudinary will return an error which the backend propagates as 400.
+ * PDF bytes are stored by the backend in PostgreSQL; storage credentials and
+ * the optional Gemini key are never exposed to the browser.
  *
  * The drag-drop zone validates PDF-only + 5MB max client-side before
  * sending (matching the backend constraint) so the user sees an inline
@@ -18,7 +16,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import axios from 'axios'
-import { Upload, FileText, Star, Trash2, ExternalLink } from 'lucide-react'
+import { Upload, FileText, Star, Trash2, ExternalLink, Sparkles, History } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,7 +26,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { resumesApi } from '@/api/resumes'
+import { JobMatchDialog } from '@/components/resumes/JobMatchDialog'
+import { JobMatchResultsDialog } from '@/components/resumes/JobMatchResultsDialog'
+import { resumesApi, type JobMatchAnalysis, type ResumePublic } from '@/api/resumes'
 import { format } from 'date-fns'
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
@@ -47,6 +47,8 @@ export default function ResumesPage() {
   const [fileError, setFileError] = useState<string | null>(null)
   const dropRef = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
+  const [matchResume, setMatchResume] = useState<ResumePublic | null>(null)
+  const [matchResult, setMatchResult] = useState<JobMatchAnalysis | null>(null)
 
   // Revoke the blob URL when the modal closes to free memory
   const closePdf = () => {
@@ -78,12 +80,13 @@ export default function ResumesPage() {
   const uploadMutation = useMutation({
     mutationFn: ({ file, label }: { file: File; label: string }) =>
       resumesApi.upload(file, label),
-    onSuccess: () => {
-      toast.success('Resume uploaded')
+    onSuccess: resume => {
+      toast.success('Resume uploaded — add a job description to check your match')
       qc.invalidateQueries({ queryKey: ['resumes'] })
       setUploadOpen(false)
       setSelectedFile(null)
       reset()
+      setMatchResume(resume)
     },
     onError: (err) => {
       if (axios.isAxiosError(err)) {
@@ -110,6 +113,18 @@ export default function ResumesPage() {
       qc.invalidateQueries({ queryKey: ['resumes'] })
     },
     onError: () => toast.error('Failed to delete resume'),
+  })
+
+  const historyMutation = useMutation({
+    mutationFn: (resumeId: string) => resumesApi.listJobMatches(resumeId),
+    onSuccess: data => {
+      if (data.items.length === 0) {
+        toast.info('No previous job match analyses for this resume')
+        return
+      }
+      setMatchResult(data.items[0])
+    },
+    onError: () => toast.error('Could not load the latest job match'),
   })
 
   const validateAndSetFile = (file: File) => {
@@ -175,12 +190,19 @@ export default function ResumesPage() {
                 </p>
                 <div className="mb-3">
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-[var(--text-muted)]">Readiness</span>
+                    <span className="text-[var(--text-muted)]">General readiness</span>
                     <span className="text-[var(--text-primary)]">{r.readiness_score.toFixed(0)}%</span>
                   </div>
                   <Progress value={r.readiness_score} className="h-1.5" />
                 </div>
-                <div className="flex gap-2 mt-3">
+                <Button
+                  size="sm"
+                  className="mt-3 w-full text-xs"
+                  onClick={() => setMatchResume(r)}
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> Match to a job
+                </Button>
+                <div className="flex gap-2 mt-2">
                   {!r.is_active && (
                     <Button
                       size="sm"
@@ -201,6 +223,15 @@ export default function ResumesPage() {
                     >
                       <FileText className="h-3 w-3 mr-1" /> {pdfLoading ? 'Loading…' : 'View PDF'}
                     </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="flex-1 text-xs h-7"
+                    onClick={() => historyMutation.mutate(r.id)}
+                    disabled={historyMutation.isPending}
+                  >
+                    <History className="h-3 w-3 mr-1" /> Last match
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -240,6 +271,22 @@ export default function ResumesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <JobMatchDialog
+        resume={matchResume}
+        open={!!matchResume}
+        onOpenChange={open => { if (!open) setMatchResume(null) }}
+        onAnalyzed={analysis => {
+          setMatchResult(analysis)
+          toast.success(`Job match analysis complete: ${analysis.overall_score}%`)
+        }}
+      />
+
+      <JobMatchResultsDialog
+        analysis={matchResult}
+        open={!!matchResult}
+        onOpenChange={open => { if (!open) setMatchResult(null) }}
+      />
 
       {/* Upload dialog */}
       <Dialog open={uploadOpen} onOpenChange={v => { if (!v) { setUploadOpen(false); setSelectedFile(null); setFileError(null); reset() } }}>

@@ -49,9 +49,7 @@ Follow them in order — each step depends on values from the previous one.
 | `BACKEND_URL` | `https://placement-tracker-api.onrender.com` (your Render URL) |
 | `GOOGLE_CLIENT_ID` | From Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | From Google Cloud Console |
-| `CLOUDINARY_CLOUD_NAME` | From Cloudinary dashboard |
-| `CLOUDINARY_API_KEY` | From Cloudinary dashboard |
-| `CLOUDINARY_API_SECRET` | From Cloudinary dashboard |
+| `GEMINI_API_KEY` | From Google AI Studio (server-side secret) |
 
 5. Click **Deploy** → wait for the deploy to go green.
 
@@ -189,7 +187,8 @@ All services start from a single `docker-compose up`. Migrations run automatical
 | `BACKEND_URL` | Yes | Render | Exact Render URL, no trailing slash |
 | `GOOGLE_CLIENT_ID` | OAuth only | Render / .env | Leave empty to disable Google login |
 | `GOOGLE_CLIENT_SECRET` | OAuth only | Render / .env | |
-| `CLOUDINARY_CLOUD_NAME` | Resume upload | Render / .env | Leave empty to disable resume upload |
-| `CLOUDINARY_API_KEY` | Resume upload | Render / .env | |
-| `CLOUDINARY_API_SECRET` | Resume upload | Render / .env | |
+| `GEMINI_API_KEY` | Job matching | Render / .env | Google AI Studio key; backend only |
+| `GEMINI_MODEL` | No | Render / .env | Defaults to `gemini-3.7-flash` |
+| `GEMINI_ANALYSES_PER_HOUR` | No | Render / .env | Defaults to 10 per user |
+| `CLOUDINARY_*` | Legacy only | Render / .env | Not needed for new PostgreSQL resume uploads |
 | `VITE_API_URL` | Yes (Vercel) | Vercel env vars | Baked in at build time |

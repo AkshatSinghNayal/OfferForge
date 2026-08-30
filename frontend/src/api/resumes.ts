@@ -46,6 +46,49 @@ export interface ReadinessResponse {
   keyword_present: number
 }
 
+export type JobRequirementCategory = 'skills' | 'experience' | 'education' | 'responsibilities' | 'domain' | 'other'
+export type JobRequirementStatus = 'matched' | 'partial' | 'missing'
+
+export interface JobRequirementAssessment {
+  requirement: string
+  category: JobRequirementCategory
+  importance: 'required' | 'preferred'
+  status: JobRequirementStatus
+  evidence: string[]
+  gap: string | null
+  recommendation: string | null
+}
+
+export interface JobMatchCategoryScore {
+  category: JobRequirementCategory
+  label: string
+  score: number
+  matched: number
+  partial: number
+  missing: number
+}
+
+export interface JobMatchAnalysis {
+  id: string
+  resume_id: string
+  job_title: string | null
+  company_name: string | null
+  overall_score: number
+  confidence: 'low' | 'medium' | 'high'
+  summary: string
+  breakdown: JobMatchCategoryScore[]
+  requirements: JobRequirementAssessment[]
+  strengths: string[]
+  recommendations: string[]
+  created_at: string
+}
+
+export interface JobMatchRequest {
+  job_description: string
+  job_title?: string
+  company_name?: string
+}
+
 export const resumesApi = {
   list: () => apiGet<ResumeList>('/resumes'),
 
@@ -81,6 +124,15 @@ export const resumesApi = {
 
   getReadiness: (resumeId: string) =>
     apiGet<ReadinessResponse>(`/resumes/${resumeId}/readiness`),
+
+  analyzeJobMatch: (resumeId: string, body: JobMatchRequest) =>
+    apiPost<JobMatchAnalysis>(`/resumes/${resumeId}/job-match`, body),
+
+  listJobMatches: (resumeId: string) =>
+    apiGet<{ items: JobMatchAnalysis[] }>(`/resumes/${resumeId}/job-matches`),
+
+  deleteJobMatch: (resumeId: string, analysisId: string) =>
+    apiDelete<void>(`/resumes/${resumeId}/job-matches/${analysisId}`),
 
   /** Fetch the PDF via authenticated request and return a blob URL for rendering. */
   fetchPdfBlobUrl: async (resumeId: string): Promise<string> => {

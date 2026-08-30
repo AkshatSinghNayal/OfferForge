@@ -21,7 +21,7 @@ A professional placement preparation hub — DSA tracking, company checklists, r
 - **Dashboard** — Readiness score, GitHub-style heatmap, weekly activity chart, company progress, streak tracking
 - **DSA Tracker** — Problem library with filters, tags, difficulty badges, revision status, and stats
 - **Companies** — Track applications, deadlines, company-specific checklists, cluster filters (FAANG, Product, etc.)
-- **Resumes** — PDF upload with validation, keyword extraction, scoring, active-resume management
+- **Resumes** — PDF upload, active-resume management, and evidence-based Gemini job-description matching
 - **Calendar** — Milestone and deadline overview
 - **Analytics** — Cross-section breakdowns and trends
 - **Notes & Resources** — Personal notes and link collections
@@ -39,9 +39,9 @@ OfferForge uses a bottom tab bar on phones (5 primary tabs + a **More** grid pag
 | Layer | Technology |
 | :--- | :--- |
 | **Frontend** | React 19, TypeScript, Vite, TailwindCSS v4, Recharts, TanStack Query, Lucide Icons |
-| **Backend** | FastAPI, Python 3.11, SQLAlchemy 2.0 (async), Alembic, Pydantic v2, Google OAuth |
+| **Backend** | FastAPI, Python 3.11, SQLAlchemy 2.0 (async), Alembic, Pydantic v2, Google OAuth, Gemini API |
 | **Database** | PostgreSQL 16 (asyncpg) |
-| **Storage** | Cloudinary (resume PDFs) |
+| **Storage** | PostgreSQL (resume PDFs and analysis history) |
 
 ---
 
@@ -50,7 +50,7 @@ OfferForge uses a bottom tab bar on phones (5 primary tabs + a **More** grid pag
 ```bash
 # 1. Configure environment
 cp backend/.env.example backend/.env
-# Edit backend/.env with your secrets (JWT, Cloudinary, Google OAuth)
+# Edit backend/.env with your secrets (JWT, Google OAuth, Gemini)
 
 # 2. Launch everything
 docker compose up --build
@@ -61,6 +61,22 @@ docker compose up --build
 | Frontend | http://localhost:5173 |
 | Backend API | http://localhost:8000 |
 | API Docs | http://localhost:8000/docs |
+
+### Gemini job matching
+
+Add a Google AI Studio key to `backend/.env` (or the backend host's secret
+environment variables). The key is used only by FastAPI and must never be
+placed in a `VITE_*` frontend variable.
+
+```env
+GEMINI_API_KEY=your_complete_key
+GEMINI_MODEL=gemini-3.7-flash
+```
+
+After a resume is uploaded, paste a job description to receive an estimated
+match percentage, category breakdown, cited resume evidence, gaps, and
+prioritized improvements. The percentage measures documented alignment with
+the supplied job description; it is not a hiring-probability prediction.
 
 ---
 

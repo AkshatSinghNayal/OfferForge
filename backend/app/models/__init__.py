@@ -22,7 +22,7 @@ from app.models.dsa import (
 )
 from app.models.note import NOTE_TYPES, Note
 from app.models.resource import RESOURCE_CATEGORIES, Resource
-from app.models.resume import Resume, ResumeCompanyMap, ResumeKeyword
+from app.models.resume import Resume, ResumeCompanyMap, ResumeJobMatchAnalysis, ResumeKeyword
 from app.models.user import PasswordResetToken, RefreshToken, User
 
 __all__ = [
@@ -39,6 +39,7 @@ __all__ = [
     "Resume",
     "ResumeKeyword",
     "ResumeCompanyMap",
+    "ResumeJobMatchAnalysis",
     "Resource",
     "Note",
     "ActivityLog",

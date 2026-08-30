@@ -57,6 +57,12 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
 
+      - key: GEMINI_API_KEY
+        sync: false           # paste the Google AI Studio key; never commit it
+
+      - key: GEMINI_MODEL
+        value: gemini-3.7-flash
+
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
 
