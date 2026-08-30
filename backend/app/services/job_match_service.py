@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from google import genai
-from google.genai import types
+from google.genai import errors as genai_errors, types
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -171,6 +171,28 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
             )
     except TimeoutError as exc:
         raise GeminiAnalysisError("Gemini analysis timed out; please try again") from exc
+    except genai_errors.APIError as exc:
+        logger.exception("Gemini job-match API request failed")
+        if exc.code == 429:
+            raise GeminiRateLimitError(
+                "Gemini's API quota is exhausted; please try again later"
+            ) from exc
+        if exc.code in (401, 403):
+            raise GeminiNotConfiguredError(
+                "Gemini rejected the API key; verify GEMINI_API_KEY and its restrictions"
+            ) from exc
+        if exc.code == 404:
+            raise GeminiNotConfiguredError(
+                f"Gemini model '{settings.GEMINI_MODEL}' is unavailable for this API key"
+            ) from exc
+        if exc.code == 400:
+            provider_message = (exc.message or "invalid request").strip()
+            raise GeminiAnalysisError(
+                f"Gemini rejected the analysis request: {provider_message}"
+            ) from exc
+        raise GeminiAnalysisError(
+            "Gemini is temporarily unavailable; please try again"
+        ) from exc
     except Exception as exc:
         logger.exception("Gemini job-match request failed")
         raise GeminiAnalysisError("Gemini could not analyze this resume right now") from exc
