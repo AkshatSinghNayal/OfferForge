@@ -23,7 +23,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.resume import Resume, ResumeCompanyMap, ResumeKeyword
+from app.models.resume import Resume, ResumeCompanyMap, ResumeKeyword, ResumeJobMatchAnalysis
 from app.models.user import User
 from app.schemas.resumes import (
     KeywordCreate,
@@ -84,30 +84,33 @@ READINESS_FORMULA = (
 
 
 def _compute_readiness(
-    *, keyword_total: int, keyword_present: int, has_active_resume: bool
+    *,
+    keyword_total: int,
+    keyword_present: int,
+    has_active_resume: bool,
+    latest_match_score: float | int | None = None,
 ) -> tuple[float, float, bool]:
     """Compute (keyword_coverage_pct, readiness_score, has_active_resume_bool).
 
-    Readiness score = keyword_coverage_pct * 0.6 + has_active_resume * 0.4
-      - keyword_coverage_pct = (keywords with is_present=true) / (total keywords) * 100
-        If user has defined zero keywords, coverage defaults to 0.
-      - has_active_resume = 1.0 if this resume (or any of the user's resumes)
-        is_active=true, else 0.0
-      - If user has no resumes at all, readiness_score = 0.
-    Tune the 0.6 / 0.4 weights here when the rubric changes.
+    If a Gemini job match analysis exists (latest_match_score is not None),
+    readiness_score uses the AI analysis score.
+    Otherwise:
+      - If keywords defined: score = coverage * 0.6 + (40.0 if has_active else 0.0)
+      - If no keywords defined: score = 70.0 if has_active else 30.0
     """
-    # Readiness score = keyword_coverage_pct * 0.6 + has_active_resume * 0.4
     if keyword_total == 0:
         coverage = 0.0
     else:
         coverage = round(keyword_present / keyword_total * 100, 1)
-    active_val = 1.0 if has_active_resume else 0.0
-    score = round(coverage * 0.6 + active_val * 0.4, 1)
-    # Scale to 0-100: 0.6*100 + 0.4*1.0 = 60.4 max from coverage=100 + active=1.
-    # We want readiness on a 0-100 scale, so:
-    # score = coverage * 0.6 + (active ? 40 : 0)  → max = 60 + 40 = 100.
-    score = round(coverage * 0.6 + (40.0 if has_active_resume else 0.0), 1)
-    return coverage, score, has_active_resume
+
+    if latest_match_score is not None:
+        score = float(latest_match_score)
+    elif keyword_total > 0:
+        score = round(coverage * 0.6 + (40.0 if has_active_resume else 0.0), 1)
+    else:
+        score = 70.0 if has_active_resume else 30.0
+
+    return coverage, max(0.0, min(100.0, score)), has_active_resume
 
 
 # ---------------------------------------------------------------------------
@@ -246,8 +249,17 @@ async def list_resumes(session: AsyncSession, *, user: User) -> list[tuple[Resum
     result: list[tuple[Resume, float, float]] = []
     for r in resumes:
         total, present = await _keyword_counts(session, r.id)
+        latest_match_score = await session.scalar(
+            select(ResumeJobMatchAnalysis.overall_score)
+            .where(ResumeJobMatchAnalysis.resume_id == r.id)
+            .order_by(ResumeJobMatchAnalysis.created_at.desc())
+            .limit(1)
+        )
         coverage, score, _ = _compute_readiness(
-            keyword_total=total, keyword_present=present, has_active_resume=has_active
+            keyword_total=total,
+            keyword_present=present,
+            has_active_resume=has_active,
+            latest_match_score=latest_match_score,
         )
         result.append((r, coverage, score))
     return result
@@ -455,8 +467,17 @@ async def get_readiness(
     resume = await _get_resume_owned_by(session, resume_id=resume_id, user_id=user.id)
     total, present = await _keyword_counts(session, resume_id)
     has_active = await _user_has_active_resume(session, user.id)
+    latest_match_score = await session.scalar(
+        select(ResumeJobMatchAnalysis.overall_score)
+        .where(ResumeJobMatchAnalysis.resume_id == resume_id)
+        .order_by(ResumeJobMatchAnalysis.created_at.desc())
+        .limit(1)
+    )
     coverage, score, _ = _compute_readiness(
-        keyword_total=total, keyword_present=present, has_active_resume=has_active
+        keyword_total=total,
+        keyword_present=present,
+        has_active_resume=has_active,
+        latest_match_score=latest_match_score,
     )
     return {
         "keyword_coverage_pct": coverage,
@@ -465,4 +486,5 @@ async def get_readiness(
         "formula": READINESS_FORMULA,
         "keyword_total": total,
         "keyword_present": present,
+        "latest_match_score": latest_match_score,
     }
