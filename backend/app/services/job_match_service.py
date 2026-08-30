@@ -156,14 +156,12 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
 </job_description>
 """.strip()
 
-    # Candidate models in priority order
+    # Candidate models in priority order (keep small to conserve API quota)
     raw_candidates = [
         settings.GEMINI_MODEL,
         settings.GEMINI_FALLBACK_MODEL,
         "gemini-2.5-flash",
         "gemini-3.6-flash",
-        "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
     ]
     candidate_models: list[str] = []
     for m in raw_candidates:
@@ -221,7 +219,7 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
                 ) from exc
             if exc.code == 429:
                 raise GeminiRateLimitError(
-                    "Gemini's API quota is exhausted; please try again later"
+                    "Gemini API rate limit reached (429). Free-tier allows 15 requests/min. Please wait 30 seconds and try again."
                 ) from exc
 
             msg_lower = (exc.message or "").lower()
