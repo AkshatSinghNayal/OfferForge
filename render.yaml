@@ -19,6 +19,9 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
+    # Keep this explicit so a stale dashboard-level Docker Command cannot
+    # bypass Alembic and start Uvicorn against an outdated schema.
+    dockerCommand: /app/start.sh
     region: oregon
     plan: free          # upgrade to starter for always-on (free sleeps after 15 min)
 
