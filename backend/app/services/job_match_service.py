@@ -14,6 +14,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
+import anyio
 from google import genai
 from google.genai import errors as genai_errors, types
 from pydantic import BaseModel, Field, ValidationError
@@ -155,12 +156,24 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
 </job_description>
 """.strip()
 
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    model_used = settings.GEMINI_MODEL
+    # Candidate models in priority order
+    raw_candidates = [
+        settings.GEMINI_MODEL,
+        settings.GEMINI_FALLBACK_MODEL,
+        "gemini-2.5-flash",
+        "gemini-1.5-flash",
+        "gemini-2.0-flash",
+    ]
+    candidate_models: list[str] = []
+    for m in raw_candidates:
+        clean = (m or "").strip()
+        if clean and clean not in candidate_models:
+            candidate_models.append(clean)
 
-    async def generate(model: str):
-        return await client.aio.models.generate_content(
-            model=model,
+    def _sync_generate(model_name: str):
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        return client.models.generate_content(
+            model=model_name,
             contents=[
                 types.Part.from_bytes(data=pdf_data, mime_type="application/pdf"),
                 prompt,
@@ -173,59 +186,66 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
             ),
         )
 
-    try:
-        async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):
-            try:
-                response = await generate(model_used)
-            except genai_errors.ServerError:
-                fallback = settings.GEMINI_FALLBACK_MODEL.strip()
-                if not fallback or fallback == model_used:
-                    raise
-                logger.warning(
-                    "Gemini model %s failed; retrying with %s", model_used, fallback
-                )
-                model_used = fallback
-                response = await generate(model_used)
-    except TimeoutError as exc:
-        raise GeminiAnalysisError("Gemini analysis timed out; please try again") from exc
-    except genai_errors.APIError as exc:
-        logger.exception("Gemini job-match API request failed")
-        if exc.code == 429:
-            raise GeminiRateLimitError(
-                "Gemini's API quota is exhausted; please try again later"
-            ) from exc
-        if exc.code in (401, 403):
-            raise GeminiNotConfiguredError(
-                "Gemini rejected the API key; verify GEMINI_API_KEY and its restrictions"
-            ) from exc
-        if exc.code == 404:
-            raise GeminiNotConfiguredError(
-                f"Gemini model '{settings.GEMINI_MODEL}' is unavailable for this API key"
-            ) from exc
-        if exc.code == 400:
-            provider_message = (exc.message or "invalid request").strip()
-            raise GeminiAnalysisError(
-                f"Gemini rejected the analysis request: {provider_message}"
-            ) from exc
-        raise GeminiAnalysisError(
-            "Gemini is temporarily unavailable; please try again"
-        ) from exc
-    except Exception as exc:
-        logger.exception("Gemini job-match request failed")
-        raise GeminiAnalysisError("Gemini could not analyze this resume right now") from exc
-    finally:
-        try:
-            await client.aio.aclose()
-        except Exception:
-            logger.warning("Failed to close Gemini async client", exc_info=True)
+    last_error: Exception | None = None
+    model_used = candidate_models[0]
 
-    try:
-        if not response.text:
-            raise ValueError("empty Gemini response")
-        return GeminiJobExtraction.model_validate_json(response.text), model_used
-    except (ValidationError, ValueError) as exc:
-        logger.warning("Gemini returned an invalid job-match response", exc_info=True)
-        raise GeminiAnalysisError("Gemini returned an invalid analysis; please try again") from exc
+    for model in candidate_models:
+        model_used = model
+        try:
+            async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):
+                response = await anyio.to_thread.run_sync(_sync_generate, model)
+
+            if not response.text:
+                raise ValueError("empty Gemini response")
+
+            extraction = GeminiJobExtraction.model_validate_json(response.text)
+            return extraction, model_used
+
+        except TimeoutError as exc:
+            last_error = exc
+            logger.warning("Gemini analysis with model %s timed out", model)
+            continue
+
+        except genai_errors.APIError as exc:
+            last_error = exc
+            if exc.code in (401, 403):
+                raise GeminiNotConfiguredError(
+                    "Gemini rejected the API key; verify GEMINI_API_KEY and its restrictions"
+                ) from exc
+            if exc.code == 429:
+                raise GeminiRateLimitError(
+                    "Gemini's API quota is exhausted; please try again later"
+                ) from exc
+
+            # For 400 (invalid argument / invalid model), 404 (model not found), 500, 503:
+            logger.warning(
+                "Gemini model %s failed with code %s (%s); trying fallback model",
+                model,
+                exc.code,
+                exc.message,
+            )
+            continue
+
+        except (ValidationError, ValueError) as exc:
+            last_error = exc
+            logger.warning("Gemini returned invalid response format for model %s: %s", model, exc)
+            continue
+
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Gemini request failed for model %s: %s", model, exc)
+            continue
+
+    if isinstance(last_error, genai_errors.APIError) and last_error.code == 400:
+        provider_message = (last_error.message or "invalid request").strip()
+        raise GeminiAnalysisError(
+            f"Gemini rejected the analysis request: {provider_message}"
+        ) from last_error
+
+    if isinstance(last_error, TimeoutError):
+        raise GeminiAnalysisError("Gemini analysis timed out; please try again") from last_error
+
+    raise GeminiAnalysisError("Gemini could not analyze this resume right now; please try again later")
 
 
 def _to_public(analysis: ResumeJobMatchAnalysis) -> dict:
