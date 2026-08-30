@@ -142,7 +142,7 @@ async def exchange_code_for_userinfo(code: str) -> GoogleUserInfo:
                 code=code,
                 grant_type="authorization_code",
             )
-        except OAuth2Error as e:
+        except (OAuth2Error, Exception) as e:
             raise OAuthError(f"Google token exchange failed: {e}") from e
 
         # Fetch userinfo.
@@ -158,16 +158,23 @@ async def exchange_code_for_userinfo(code: str) -> GoogleUserInfo:
             raise OAuthError(f"Google userinfo returned non-JSON: {e}") from e
 
     # Validate the bare minimum.
-    if "sub" not in data or "email" not in data:
+    sub = data.get("sub")
+    email = data.get("email")
+    if not sub or not email:
         raise OAuthError(
             f"Google userinfo missing required fields (sub/email). Got: {data}"
         )
 
-    return GoogleUserInfo(
-        sub=data["sub"],
-        email=data["email"],
-        name=data.get("name") or data.get("given_name") or data["email"].split("@")[0],
-    )
+    name = data.get("name") or data.get("given_name") or str(email).split("@")[0]
+
+    try:
+        return GoogleUserInfo(
+            sub=str(sub),
+            email=str(email),
+            name=str(name)[:120],
+        )
+    except Exception as e:
+        raise OAuthError(f"Invalid Google userinfo data: {e}") from e
 
 
 class OAuthError(Exception):

@@ -102,6 +102,11 @@ class Settings(BaseSettings):
             )
         return v
 
+    @field_validator("FRONTEND_URL", "BACKEND_URL")
+    @classmethod
+    def _strip_trailing_slash(cls, v: str) -> str:
+        return v.rstrip("/") if isinstance(v, str) else v
+
     @field_validator("JWT_SECRET_KEY", "JWT_REFRESH_SECRET_KEY")
     @classmethod
     def _block_default_secret_in_prod(cls, v: str, info) -> str:

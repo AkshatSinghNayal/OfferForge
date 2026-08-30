@@ -28,6 +28,7 @@ export default function LoginPage() {
         oauth_failed: 'Google sign-in failed. Please try again.',
         oauth_state_mismatch: 'Security check failed. Please try again.',
         oauth_missing_params: 'OAuth response was incomplete. Please try again.',
+        oauth_unconfigured: 'Google sign-in is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.',
       }
       toast.error(messages[error] ?? 'Authentication failed.')
     }

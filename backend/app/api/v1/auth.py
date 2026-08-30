@@ -181,6 +181,11 @@ async def google_login():
     verifies the signature and expiry without needing a cookie, which sidesteps
     cross-site cookie delivery issues in the vercel→render deployment.
     """
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        return RedirectResponse(
+            f"{settings.FRONTEND_URL}/login?error=oauth_unconfigured",
+            status_code=status.HTTP_302_FOUND,
+        )
     state = generate_state()
     url = build_authorization_url(state)
     return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
@@ -195,8 +200,8 @@ async def google_callback(
 ):
     """Handle the redirect back from Google.
 
-    On success: 302 → FRONTEND_URL/auth/google/callback?success=1 with the
-                refresh cookie set.
+    On success: 302 → FRONTEND_URL/auth/google/callback?token={access}&success=1
+                with the refresh cookie set.
     On failure: 302 → FRONTEND_URL/login?error=<reason> with no cookie.
     """
     # Google-side error (user declined, etc.)
@@ -212,7 +217,7 @@ async def google_callback(
             status_code=status.HTTP_302_FOUND,
         )
 
-    # Verify the signed state token (signature + expiry).  No cookie required —
+    # Verify the signed state token (signature + expiry). No cookie required —
     # the state is self-validating via HMAC-SHA256 signed with JWT_SECRET_KEY.
     if not verify_state(state):
         return RedirectResponse(
@@ -224,13 +229,15 @@ async def google_callback(
     try:
         info = await exchange_code_for_userinfo(code)
         user, access, raw_refresh = await auth_service.oauth_link_or_create(session, info)
-    except (OAuthError, AuthError) as e:
+    except Exception as e:
+        err_msg = str(e)
+        reason = "oauth_unconfigured" if "not configured" in err_msg.lower() else "oauth_failed"
         resp = RedirectResponse(
-            f"{settings.FRONTEND_URL}/login?error=oauth_failed",
+            f"{settings.FRONTEND_URL}/login?error={reason}",
             status_code=status.HTTP_302_FOUND,
         )
         # Include the detail in a header for debugging — not in the URL (could leak).
-        resp.headers["X-OAuth-Error"] = str(e)[:200]
+        resp.headers["X-OAuth-Error"] = err_msg[:200]
         return resp
 
     resp = RedirectResponse(

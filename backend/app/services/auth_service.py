@@ -251,11 +251,17 @@ async def oauth_link_or_create(
       OAuthUserConflictError — google_sub is somehow already on a different
         user row (should not happen given the unique constraint, but guard).
     """
+    display_name = (info.name or info.email.split("@")[0]).strip()[:120]
+    if not display_name:
+        display_name = info.email.split("@")[0][:120]
+
     # 1. Existing Google link.
     user = await session.scalar(select(User).where(User.google_sub == info.sub))
     if user is not None:
         if not user.is_active:
             raise UserInactiveError("account is inactive")
+        if not user.full_name or not user.full_name.strip():
+            user.full_name = display_name
         # Already linked — just issue tokens.
         from app.core.security import create_access_token
         raw_refresh, _ = _issue_refresh_token(session, user)
@@ -269,19 +275,25 @@ async def oauth_link_or_create(
         if not user.is_active:
             raise UserInactiveError("account is inactive")
         user.google_sub = info.sub
-        # If the user previously had a different name from Google, update it.
-        # (Optional — keeping the existing name to avoid surprising overwrites.)
+        if not user.full_name or not user.full_name.strip():
+            user.full_name = display_name
         from app.core.security import create_access_token
         raw_refresh, _ = _issue_refresh_token(session, user)
         access = create_access_token(user.id)
-        await session.commit()
-        await session.refresh(user)
+        try:
+            await session.commit()
+            await session.refresh(user)
+        except IntegrityError as e:
+            await session.rollback()
+            raise OAuthUserConflictError(
+                f"could not link Google account: {e}"
+            ) from e
         return user, access, raw_refresh
 
     # 3. Brand new user.
     user = User(
         email=info.email,
-        full_name=info.name or info.email.split("@")[0],
+        full_name=display_name,
         hashed_password=None,
         google_sub=info.sub,
         is_active=True,

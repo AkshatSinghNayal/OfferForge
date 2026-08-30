@@ -38,7 +38,7 @@ export default function GoogleCallbackPage() {
         .me()
         .then((user) => {
           login(user, token)
-          toast.success(`Welcome, ${user.full_name.split(' ')[0]}!`)
+          toast.success(`Welcome, ${(user.full_name || 'User').split(' ')[0]}!`)
           navigate('/dashboard', { replace: true })
         })
         .catch(() => {
@@ -52,7 +52,7 @@ export default function GoogleCallbackPage() {
       .refresh()
       .then((data) => {
         login(data.user, data.access_token)
-        toast.success(`Welcome, ${data.user.full_name.split(' ')[0]}!`)
+        toast.success(`Welcome, ${(data.user.full_name || 'User').split(' ')[0]}!`)
         navigate('/dashboard', { replace: true })
       })
       .catch(() => {

@@ -43,7 +43,8 @@ export const authApi = {
 
   /** Redirects to Google's consent screen (full page navigation). */
   googleLogin: () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || ''}/api/v1/auth/google/login`
+    const baseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+    window.location.href = `${baseUrl}/api/v1/auth/google/login`
   },
 
   /** Log in as the demo user — seeds demo data on first call. */
