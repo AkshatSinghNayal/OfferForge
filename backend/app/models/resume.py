@@ -41,7 +41,9 @@ class Resume(Base, TimestampMixin):
         back_populates="resume", cascade="all, delete-orphan"
     )
     job_match_analyses: Mapped[list[ResumeJobMatchAnalysis]] = relationship(
-        back_populates="resume", cascade="all, delete-orphan"
+        back_populates="resume",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     __table_args__ = (
