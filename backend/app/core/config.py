@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     # "dev" allows insecure defaults (e.g. dummy JWT secrets). "prod" requires
     # real secrets and fails fast if they are missing.
     APP_ENV: Literal["dev", "prod", "test"] = "dev"
+    # Deployment safety: some hosts override the Docker CMD and start Uvicorn
+    # directly. Running Alembic in the app lifespan keeps the schema current in
+    # both that setup and the normal start.sh setup (the second run is a no-op).
+    AUTO_MIGRATE_ON_STARTUP: bool = True
 
     @field_validator("DATABASE_URL")
     @classmethod
