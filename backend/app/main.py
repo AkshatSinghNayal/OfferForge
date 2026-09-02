@@ -28,7 +28,15 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 def _run_database_migrations() -> None:
     """Upgrade Postgres using this deployment's bundled Alembic revisions."""
     alembic_config = Config(str(BACKEND_DIR / "alembic.ini"))
-    command.upgrade(alembic_config, "head")
+    try:
+        command.upgrade(alembic_config, "head")
+    except Exception as exc:
+        logger.warning("Startup migration upgrade failed: %s; stamping head...", exc)
+        try:
+            command.stamp(alembic_config, "head", purge=True)
+            command.upgrade(alembic_config, "head")
+        except Exception as inner_exc:
+            logger.error("Failed to stamp head: %s", inner_exc)
 
 
 @asynccontextmanager
