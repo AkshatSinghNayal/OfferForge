@@ -55,7 +55,7 @@ function onRefreshFailed(error: any) {
 export const apiClient = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL || ''}/api/v1`,
   withCredentials: true, // send the httpOnly refresh cookie on cross-origin
-  timeout: 15000,
+  timeout: 45000,
   headers: {
     'Content-Type': 'application/json',
   },

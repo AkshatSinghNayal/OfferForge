@@ -128,7 +128,7 @@ export const resumesApi = {
     apiGet<ReadinessResponse>(`/resumes/${resumeId}/readiness`),
 
   analyzeJobMatch: (resumeId: string, body: JobMatchRequest) =>
-    apiPost<JobMatchAnalysis>(`/resumes/${resumeId}/job-match`, body),
+    apiPost<JobMatchAnalysis>(`/resumes/${resumeId}/job-match`, body, { timeout: 60000 }),
 
   listJobMatches: (resumeId: string) =>
     apiGet<{ items: JobMatchAnalysis[] }>(`/resumes/${resumeId}/job-matches`),

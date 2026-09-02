@@ -46,10 +46,15 @@ export function JobMatchDialog({ resume, open, onOpenChange, onAnalyzed }: JobMa
       onAnalyzed(analysis)
     },
     onError: error => {
-      const message = axios.isAxiosError(error)
-        ? error.response?.data?.detail
-        : null
-      toast.error(typeof message === 'string' ? message : 'Could not analyze this resume. Please try again.')
+      let message = 'Could not analyze this resume. Please try again.'
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          message = 'Analysis took longer than expected. Please check "Last match" in a few seconds.'
+        } else if (typeof error.response?.data?.detail === 'string') {
+          message = error.response.data.detail
+        }
+      }
+      toast.error(message)
     },
   })
 
