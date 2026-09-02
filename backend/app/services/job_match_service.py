@@ -169,20 +169,27 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
         if clean and clean not in candidate_models:
             candidate_models.append(clean)
 
-    def _sync_generate(model_name: str):
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    api_key = (settings.GEMINI_API_KEY or "").strip()
+    if not api_key:
+        raise GeminiNotConfiguredError("GEMINI_API_KEY is not set in environment variables")
+
+    def _sync_generate(model_name: str, use_schema: bool = True):
+        client = genai.Client(api_key=api_key)
+        config_args = {
+            "system_instruction": SYSTEM_INSTRUCTION,
+            "response_mime_type": "application/json",
+            "max_output_tokens": 8192,
+        }
+        if use_schema:
+            config_args["response_schema"] = GeminiJobExtraction
+
         return client.models.generate_content(
             model=model_name,
             contents=[
                 types.Part.from_bytes(data=pdf_data, mime_type="application/pdf"),
                 prompt,
             ],
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                response_mime_type="application/json",
-                response_schema=GeminiJobExtraction,
-                max_output_tokens=8192,
-            ),
+            config=types.GenerateContentConfig(**config_args),
         )
 
     last_error: Exception | None = None
@@ -190,72 +197,86 @@ User-provided company: {request.company_name or "Not provided; infer if clear"}
 
     for model in candidate_models:
         model_used = model
-        try:
-            if hasattr(asyncio, "timeout"):
-                async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):
-                    response = await anyio.to_thread.run_sync(_sync_generate, model)
-            else:
-                response = await asyncio.wait_for(
-                    anyio.to_thread.run_sync(_sync_generate, model),
-                    timeout=settings.GEMINI_TIMEOUT_SECONDS,
+        for use_schema in (True, False):
+            try:
+                if hasattr(asyncio, "timeout"):
+                    async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):
+                        response = await anyio.to_thread.run_sync(_sync_generate, model, use_schema)
+                else:
+                    response = await asyncio.wait_for(
+                        anyio.to_thread.run_sync(_sync_generate, model, use_schema),
+                        timeout=settings.GEMINI_TIMEOUT_SECONDS,
+                    )
+
+                if not response or not response.text:
+                    raise ValueError("empty Gemini response")
+
+                raw_text = response.text.strip()
+                if raw_text.startswith("```"):
+                    lines = raw_text.splitlines()
+                    if lines[0].startswith("```"):
+                        lines = lines[1:]
+                    if lines and lines[-1].startswith("```"):
+                        lines = lines[:-1]
+                    raw_text = "\n".join(lines).strip()
+
+                extraction = GeminiJobExtraction.model_validate_json(raw_text)
+                return extraction, model_used
+
+            except TimeoutError as exc:
+                last_error = exc
+                logger.warning("Gemini analysis with model %s timed out", model)
+                break
+
+            except genai_errors.APIError as exc:
+                last_error = exc
+                if exc.code in (401, 403):
+                    raise GeminiNotConfiguredError(
+                        "Gemini rejected the API key; verify GEMINI_API_KEY in Render environment variables"
+                    ) from exc
+                if exc.code == 429:
+                    raise GeminiRateLimitError(
+                        "Gemini API rate limit reached (429). Free-tier allows 15 requests/min. Please wait 30 seconds and try again."
+                    ) from exc
+
+                msg_lower = (exc.message or "").lower()
+                if "document has no pages" in msg_lower or "pdf" in msg_lower:
+                    raise GeminiAnalysisError(
+                        "The uploaded resume PDF could not be read or contains no readable pages. Please re-upload a valid PDF resume."
+                    ) from exc
+
+                logger.warning(
+                    "Gemini model %s (schema=%s) failed with code %s (%s)",
+                    model,
+                    use_schema,
+                    exc.code,
+                    exc.message,
                 )
+                if exc.code == 400 and use_schema:
+                    continue  # try without schema on same model
+                break  # try next model
 
-            if not response.text:
-                raise ValueError("empty Gemini response")
+            except (ValidationError, ValueError) as exc:
+                last_error = exc
+                logger.warning("Gemini returned invalid response format for model %s: %s", model, exc)
+                continue
 
-            extraction = GeminiJobExtraction.model_validate_json(response.text)
-            return extraction, model_used
-
-        except TimeoutError as exc:
-            last_error = exc
-            logger.warning("Gemini analysis with model %s timed out", model)
-            continue
-
-        except genai_errors.APIError as exc:
-            last_error = exc
-            if exc.code in (401, 403):
-                raise GeminiNotConfiguredError(
-                    "Gemini rejected the API key; verify GEMINI_API_KEY and its restrictions"
-                ) from exc
-            if exc.code == 429:
-                raise GeminiRateLimitError(
-                    "Gemini API rate limit reached (429). Free-tier allows 15 requests/min. Please wait 30 seconds and try again."
-                ) from exc
-
-            msg_lower = (exc.message or "").lower()
-            if "document has no pages" in msg_lower or "pdf" in msg_lower:
-                raise GeminiAnalysisError(
-                    "The uploaded resume PDF could not be read or contains no readable pages. Please re-upload a valid PDF resume."
-                ) from exc
-
-            logger.warning(
-                "Gemini model %s failed with code %s (%s); trying fallback model",
-                model,
-                exc.code,
-                exc.message,
-            )
-            continue
-
-        except (ValidationError, ValueError) as exc:
-            last_error = exc
-            logger.warning("Gemini returned invalid response format for model %s: %s", model, exc)
-            continue
-
-        except Exception as exc:
-            last_error = exc
-            logger.warning("Gemini request failed for model %s: %s", model, exc)
-            continue
+            except Exception as exc:
+                last_error = exc
+                logger.warning("Gemini request failed for model %s: %s", model, exc)
+                continue
 
     if isinstance(last_error, genai_errors.APIError) and last_error.code == 400:
         provider_message = (last_error.message or "invalid request").strip()
         raise GeminiAnalysisError(
-            f"Gemini rejected the analysis request: {provider_message}"
+            f"Gemini rejected analysis request: {provider_message}"
         ) from last_error
 
     if isinstance(last_error, TimeoutError):
         raise GeminiAnalysisError("Gemini analysis timed out; please try again") from last_error
 
-    raise GeminiAnalysisError("Gemini could not analyze this resume right now; please try again later")
+    err_detail = str(last_error) if last_error else "Gemini returned empty analysis"
+    raise GeminiAnalysisError(f"Gemini analysis failed: {err_detail}")
 
 
 def _to_public(analysis: ResumeJobMatchAnalysis) -> dict:
