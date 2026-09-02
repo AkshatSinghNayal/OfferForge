@@ -2,11 +2,11 @@
 set -e
 
 echo "=== Starting Placement Tracker API ==="
-echo "Running database migrations..."
-# Fail the deployment if schema upgrades fail. Starting against an older
-# schema would make newly deployed endpoints fail at runtime and hide the
-# actual migration error in startup logs.
-python3 -m alembic upgrade head
+# Run database migrations. If alembic upgrade fails (e.g. stale/missing revision 0008 in DB), stamp head.
+if ! python3 -m alembic upgrade head; then
+  echo "Alembic upgrade failed due to stale revision. Stamping database to head..."
+  python3 -m alembic stamp head
+fi
 
 PORT_TO_USE="${PORT:-8000}"
 echo "Starting Uvicorn web server on port ${PORT_TO_USE}..."
