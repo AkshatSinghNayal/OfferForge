@@ -325,10 +325,18 @@ async def analyze_resume(
         pdf_data=resume.pdf_data, request=request
     )
 
-    # Never award evidence credit when the provider did not return evidence.
-    # This also makes malformed/hallucinated matches fail closed.
+    valid_categories = {"skills", "experience", "education", "responsibilities", "domain", "other"}
+    valid_importances = {"required", "preferred"}
+    valid_statuses = {"matched", "partial", "missing"}
+
     for item in extraction.requirements:
-        item.evidence = [e.strip() for e in item.evidence if e.strip()]
+        if item.category not in valid_categories:
+            item.category = "other"
+        if item.importance not in valid_importances:
+            item.importance = "preferred"
+        if item.status not in valid_statuses:
+            item.status = "missing"
+        item.evidence = [e.strip() for e in (item.evidence or []) if isinstance(e, str) and e.strip()]
         if item.status in ("matched", "partial") and not item.evidence:
             item.status = "missing"
             item.gap = item.gap or "No supporting evidence was found in the resume."

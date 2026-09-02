@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -110,21 +110,64 @@ class JobMatchRequest(BaseModel):
 
 class JobRequirementAssessment(BaseModel):
     requirement: str
-    category: JobRequirementCategory
-    importance: JobRequirementImportance
-    status: JobRequirementStatus
-    evidence: list[str]
+    category: str
+    importance: str
+    status: str
+    evidence: list[str] = Field(default_factory=list)
     gap: str | None = None
     recommendation: str | None = None
 
+    @field_validator("category", mode="before")
+    @classmethod
+    def _clean_category(cls, val: Any) -> str:
+        s = str(val or "").strip().lower()
+        if s in ("skills", "experience", "education", "responsibilities", "domain", "other"):
+            return s
+        return "other"
+
+    @field_validator("importance", mode="before")
+    @classmethod
+    def _clean_importance(cls, val: Any) -> str:
+        s = str(val or "").strip().lower()
+        if s in ("required", "preferred"):
+            return s
+        return "preferred"
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _clean_status(cls, val: Any) -> str:
+        s = str(val or "").strip().lower()
+        if s in ("matched", "partial", "missing"):
+            return s
+        if "match" in s:
+            return "matched"
+        if "part" in s:
+            return "partial"
+        return "missing"
+
+    @field_validator("evidence", mode="before")
+    @classmethod
+    def _clean_evidence(cls, val: Any) -> list[str]:
+        if not val or not isinstance(val, list):
+            return []
+        return [str(x).strip() for x in val if x and str(x).strip()]
+
 
 class JobMatchCategoryScore(BaseModel):
-    category: JobRequirementCategory
+    category: str
     label: str
     score: int
     matched: int
     partial: int
     missing: int
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _clean_category(cls, val: Any) -> str:
+        s = str(val or "").strip().lower()
+        if s in ("skills", "experience", "education", "responsibilities", "domain", "other"):
+            return s
+        return "other"
 
 
 class JobMatchAnalysisPublic(BaseModel):

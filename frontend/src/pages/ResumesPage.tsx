@@ -290,6 +290,7 @@ export default function ResumesPage() {
         onOpenChange={open => { if (!open) setMatchResume(null) }}
         onAnalyzed={analysis => {
           setMatchResult(analysis)
+          queryClient.invalidateQueries({ queryKey: ['resumes'] })
           toast.success(`Job match analysis complete: ${analysis.overall_score}%`)
         }}
       />
