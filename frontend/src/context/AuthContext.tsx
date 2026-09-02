@@ -68,7 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const bootstrap = async () => {
       try {
         if (!bootstrapPromise) {
-          bootstrapPromise = authApi.refresh()
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Bootstrap timeout')), 6000)
+          )
+          bootstrapPromise = Promise.race([authApi.refresh(), timeoutPromise])
         }
         const data = await bootstrapPromise
         if (cancelled) return
