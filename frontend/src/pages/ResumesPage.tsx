@@ -172,126 +172,97 @@ export default function ResumesPage() {
           onAction={() => setUploadOpen(true)}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data?.items.map(r => (
-            <Card
-              key={r.id}
-              className={`relative overflow-hidden transition-all duration-300 group hover:shadow-2xl hover:shadow-indigo-500/10 ${
-                r.is_active
-                  ? 'bg-slate-900/90 border-indigo-500/50 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/20'
-                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700/80 hover:bg-slate-900/80'
-              }`}
-            >
-              {r.is_active && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400" />
-              )}
+            <Card key={r.id} className={r.is_active ? 'border-[var(--accent)]/40 shadow-sm' : ''}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-[var(--accent)] shrink-0" />
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate" title={r.version_label}>
+                      {r.version_label}
+                    </p>
+                  </div>
+                  {r.is_active && (
+                    <Badge variant="success" className="text-[10px] shrink-0">Active</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--text-muted)] mb-3">
+                  Uploaded {format(new Date(r.created_at), 'MMM d, yyyy')}
+                </p>
 
-              <CardContent className="p-5">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/15 to-violet-500/15 text-indigo-400 border border-indigo-500/25 shrink-0 group-hover:scale-105 transition-transform">
-                      <FileText className="h-5 w-5" />
+                <div className="space-y-2 mb-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-[var(--text-muted)]">General readiness</span>
+                      <span className="font-semibold text-[var(--text-primary)]">{r.readiness_score.toFixed(0)}%</span>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base font-semibold text-slate-100 truncate group-hover:text-indigo-300 transition-colors" title={r.version_label}>
-                        {r.version_label}
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Uploaded {format(new Date(r.created_at), 'MMM d, yyyy')}
-                      </p>
-                    </div>
+                    <Progress value={r.readiness_score} className="h-1.5" />
                   </div>
 
-                  {r.is_active && (
-                    <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Active
-                    </Badge>
+                  {r.latest_match_score !== undefined && r.latest_match_score !== null && (
+                    <div className="p-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border)] text-xs flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex items-center gap-1.5">
+                        <Target className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
+                        <span className="text-[var(--text-muted)] truncate" title={r.latest_job_title || 'Recent Job'}>
+                          Last match: <strong className="text-[var(--text-primary)] font-medium">{r.latest_job_title || 'Recent Job'}</strong>
+                        </span>
+                      </div>
+                      <span className={`font-bold shrink-0 px-2 py-0.5 rounded text-[11px] ${
+                        r.latest_match_score >= 70
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : r.latest_match_score >= 50
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                      }`}>
+                        {r.latest_match_score}%
+                      </span>
+                    </div>
                   )}
                 </div>
 
-                {/* General Readiness Progress */}
-                <div className="space-y-2 my-4 p-3 rounded-xl bg-slate-950/40 border border-slate-800/60">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">
-                      General readiness
-                    </span>
-                    <span className="text-slate-200 font-bold">{r.readiness_score.toFixed(0)}%</span>
-                  </div>
-                  <Progress value={r.readiness_score} className="h-2 bg-slate-800" />
-                </div>
-
-                {/* Latest Job Match Card Badge */}
-                {r.latest_match_score !== undefined && r.latest_match_score !== null && (
-                  <div className="mb-4 p-3 rounded-xl bg-slate-950/70 border border-indigo-500/20 hover:border-indigo-500/40 transition-all flex items-center justify-between gap-3 shadow-inner">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 shrink-0">
-                        <Target className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">Last Job Match</p>
-                        <p className="text-xs font-semibold text-slate-200 truncate" title={r.latest_job_title || 'Recent Job'}>
-                          {r.latest_job_title || 'Recent Job'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`px-2.5 py-1 rounded-lg border text-xs font-bold shrink-0 shadow-sm ${
-                      r.latest_match_score >= 70
-                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-emerald-500/10'
-                        : r.latest_match_score >= 50
-                        ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 shadow-amber-500/10'
-                        : 'bg-rose-500/15 text-rose-400 border-rose-500/30 shadow-rose-500/10'
-                    }`}>
-                      {r.latest_match_score}% Match
-                    </div>
-                  </div>
-                )}
-
-                {/* Primary Action Button */}
                 <Button
                   size="sm"
-                  className="w-full text-xs font-semibold h-9 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/35 border border-indigo-400/20 transition-all duration-200 active:scale-[0.99]"
+                  className="w-full text-xs font-medium"
                   onClick={() => setMatchResume(r)}
                 >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-indigo-200 animate-pulse" /> Match to a job
+                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Match to a job
                 </Button>
 
-                {/* Secondary Action Toolbar */}
-                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-800/80 text-xs">
+                <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-[var(--border)]">
                   {!r.is_active && (
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="flex-1 text-xs h-8 text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 px-2"
+                      variant="outline"
+                      className="flex-1 text-xs h-7"
                       onClick={() => activateMutation.mutate(r.id)}
                       disabled={activateMutation.isPending}
                     >
-                      <Star className="h-3.5 w-3.5 mr-1" /> Set Active
+                      <Star className="h-3 w-3 mr-1" /> Set Active
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="flex-1 text-xs h-8 text-slate-300 hover:text-white hover:bg-slate-800 px-2"
+                    className="flex-1 text-xs h-7"
                     onClick={() => openPdf(r.id)}
                     disabled={pdfLoading}
                   >
-                    <FileText className="h-3.5 w-3.5 mr-1 text-indigo-400" /> {pdfLoading ? 'Loading…' : 'View PDF'}
+                    <FileText className="h-3 w-3 mr-1" /> {pdfLoading ? 'Loading…' : 'View PDF'}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="flex-1 text-xs h-8 text-slate-300 hover:text-white hover:bg-slate-800 px-2"
+                    className="flex-1 text-xs h-7"
                     onClick={() => historyMutation.mutate(r.id)}
                     disabled={historyMutation.isPending}
                   >
-                    <History className="h-3.5 w-3.5 mr-1 text-violet-400" /> Last match
+                    <History className="h-3 w-3 mr-1" /> Last match
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8 w-8 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 shrink-0 rounded-lg"
+                    className="h-7 w-7 p-0 text-[var(--text-muted)] hover:text-[var(--danger)] shrink-0"
                     onClick={() => deleteMutation.mutate(r.id)}
                     disabled={deleteMutation.isPending}
                     aria-label="Delete resume"
