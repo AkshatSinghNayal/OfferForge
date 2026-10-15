@@ -15,6 +15,7 @@ from app.api.v1 import (
     resources,
     resumes,
     search,
+    workspace,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -30,3 +31,5 @@ api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 
 # All routers are now wired. Backend is feature-complete through Phase 7.
+
+api_router.include_router(workspace.router, prefix="/workspace", tags=["workspace"])

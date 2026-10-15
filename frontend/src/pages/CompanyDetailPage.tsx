@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -11,13 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { companiesApi, checklistApi, type ApplicationStatus } from '@/api/companies'
-
-const APPLICATION_STATUSES: ApplicationStatus[] = [
-  'Not Started', 'Researching', 'Applied', 'OA Received',
-  'Interview Scheduled', 'Offer Received', 'Rejected',
-]
+import { companiesApi, checklistApi } from '@/api/companies'
 
 export default function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -52,17 +46,6 @@ export default function CompanyDetailPage() {
         toast.error('Failed to track company')
       }
     },
-  })
-
-  const statusMutation = useMutation({
-    mutationFn: (status: ApplicationStatus) =>
-      companiesApi.updateTracking(id!, { application_status: status }),
-    onSuccess: () => {
-      toast.success('Status updated')
-      qc.invalidateQueries({ queryKey: ['company', id] })
-      qc.invalidateQueries({ queryKey: ['tracked-companies'] })
-    },
-    onError: () => toast.error('Failed to update status'),
   })
 
   const toggleMutation = useMutation({
@@ -111,25 +94,10 @@ export default function CompanyDetailPage() {
         <div className="flex items-center gap-2">
           {!isTracked ? (
             <Button size="sm" onClick={() => trackMutation.mutate()} disabled={trackMutation.isPending}>
-              {trackMutation.isPending ? 'Tracking…' : 'Track Company'}
+              {trackMutation.isPending ? 'Tracking…' : 'Start preparing'}
             </Button>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--text-muted)]">Status:</span>
-              <Select
-                value={company.user_state?.application_status}
-                onValueChange={(v) => statusMutation.mutate(v as ApplicationStatus)}
-              >
-                <SelectTrigger className="h-8 text-xs w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APPLICATION_STATUSES.map(s => (
-                    <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Button size="sm" variant="outline" asChild><Link to={`/applications?new=1&company=${encodeURIComponent(company.name)}`}>Add a role</Link></Button>
           )}
         </div>
       </div>

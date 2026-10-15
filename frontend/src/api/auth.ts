@@ -1,6 +1,6 @@
 /** Auth API calls — all wired to real backend endpoints. */
 
-import { apiGet, apiPost } from './client'
+import { apiGet, apiPost, apiPatch } from './client'
 import type {
   LoginRequest,
   MessageResponse,
@@ -14,6 +14,8 @@ import type {
 let activeRefreshPromise: Promise<TokenResponse> | null = null
 
 export const authApi = {
+  updateProfile: (full_name: string) => apiPatch<UserPublic>('/auth/profile', { full_name }),
+  changePassword: (current_password: string, new_password: string) => apiPost<MessageResponse>('/auth/password', { current_password, new_password }),
   signup: (body: SignupRequest) =>
     apiPost<TokenResponse>('/auth/signup', body),
 

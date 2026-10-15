@@ -16,8 +16,9 @@ import { searchApi, type SearchResponse } from '@/api/search'
 
 // ─── Static nav items ─────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Companies', to: '/companies', icon: Building2 },
+  { label: 'Today', to: '/dashboard', icon: LayoutDashboard },
+  { label: 'Applications', to: '/applications', icon: Building2 },
+  { label: 'Company library', to: '/companies', icon: Building2 },
   { label: 'DSA Tracker', to: '/dsa', icon: Code2 },
   { label: 'Resumes', to: '/resumes', icon: FileText },
   { label: 'Resources', to: '/resources', icon: BookOpen },

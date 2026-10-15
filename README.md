@@ -18,11 +18,12 @@ A professional placement preparation hub — DSA tracking, company checklists, r
 
 ## Features
 
-- **Dashboard** — Readiness score, GitHub-style heatmap, weekly activity chart, company progress, streak tracking
+- **Today** — A prioritized next move, persistent preparation plan, upcoming deadlines, and progress summary
+- **Applications** — Role-specific board/table pipeline, pins, stage history, resume attachments, and next actions
 - **DSA Tracker** — Problem library with filters, tags, difficulty badges, revision status, and stats
 - **Companies** — Track applications, deadlines, company-specific checklists, cluster filters (FAANG, Product, etc.)
-- **Resumes** — PDF upload, active-resume management, and evidence-based Gemini job-description matching
-- **Calendar** — Milestone and deadline overview
+- **Resumes** — PDF upload, evidence-based Gemini matching, reviewed role capture, and one-click conversion of gaps into preparation tasks
+- **Calendar** — Application deadline overview
 - **Analytics** — Cross-section breakdowns and trends
 - **Notes & Resources** — Personal notes and link collections
 - **Settings** — Profile and preferences
@@ -125,3 +126,5 @@ quota. All discovery and generation attempts share `GEMINI_TIMEOUT_SECONDS`
 Errors do not expose raw provider responses or fabricate a match score. An
 invalid PDF, unavailable service, or exhausted quota on all credentials can
 still prevent analysis. Existing saved analyses remain available.
+
+See [the workspace upgrade guide](docs/WORKSPACE_UPGRADE.md) for migration and verification details.

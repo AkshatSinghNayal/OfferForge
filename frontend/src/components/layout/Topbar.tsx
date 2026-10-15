@@ -14,8 +14,9 @@ import { useTheme } from '@/context/ThemeContext'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/companies': 'Companies',
+  '/dashboard': 'Today',
+  '/applications': 'Applications',
+  '/companies': 'Company library',
   '/dsa': 'DSA Tracker',
   '/resumes': 'Resumes',
   '/resources': 'Resources',
@@ -53,7 +54,7 @@ export function Topbar({ onCommandPalette }: TopbarProps) {
   return (
     <TooltipProvider delayDuration={200}>
       <header
-        className="topbar-push fixed top-0 right-0 left-0 h-14 flex items-center justify-between px-3 z-30 border-b border-[var(--border)] transition-[left] duration-200"
+        className="topbar-push fixed top-0 right-0 left-0 h-14 flex items-center justify-between px-4 sm:px-7 z-30 border-b border-[var(--border)] transition-[left] duration-200"
         style={{ background: 'var(--card)' }}
       >
         {/* Left: page title */}
@@ -74,12 +75,12 @@ export function Topbar({ onCommandPalette }: TopbarProps) {
                 variant="ghost"
                 size="sm"
                 onClick={onCommandPalette}
-                className="hidden sm:flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs rounded-lg border border-[var(--border)] bg-[var(--input-bg)] hover:bg-[var(--border)]/60 px-3 h-8"
+                className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs rounded-lg border border-[var(--border)] bg-[var(--input-bg)] hover:bg-[var(--border)]/60 px-3 h-8"
                 aria-label="Open command palette"
               >
                 <Search className="h-3.5 w-3.5" />
-                <span>Search</span>
-                <kbd className="ml-1 rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-sans opacity-70">⌘K</kbd>
+                <span className="hidden sm:inline">Search workspace</span>
+                <kbd className="hidden sm:inline ml-1 rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-sans opacity-70">⌘K</kbd>
               </Button>
             </TooltipTrigger>
             <TooltipContent>Command palette (⌘K)</TooltipContent>

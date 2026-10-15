@@ -15,6 +15,7 @@ const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'))
 const GoogleCallbackPage = lazy(() => import('@/pages/GoogleCallbackPage'))
 
 // App pages (lazy loaded)
+const ApplicationsPage = lazy(() => import('@/pages/ApplicationsPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const CompaniesPage = lazy(() => import('@/pages/CompaniesPage'))
 const CompanyDetailPage = lazy(() => import('@/pages/CompanyDetailPage'))
@@ -68,6 +69,7 @@ export default function App() {
                   <Route element={<AppLayout />}>
                     <Route index element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/applications" element={<ApplicationsPage />} />
                     <Route path="/companies" element={<CompaniesPage />} />
                     <Route path="/companies/:id" element={<CompanyDetailPage />} />
                     <Route path="/dsa" element={<DSAPage />} />

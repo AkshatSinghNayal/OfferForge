@@ -1,7 +1,7 @@
 """Seed demo data: user + DSA problems + resources + notes + tracked companies.
 
-Idempotent — creates the demo user + demo data only once. On subsequent calls
-it just returns the existing demo user without duplicating data.
+Idempotent — creates the base dataset once and applies versioned upgrades
+to existing demo accounts without resetting their edits.
 
 Usage from the auth router:
     from app.seed_demo import seed_demo_data
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
@@ -124,8 +124,13 @@ DEMO_PDF_BYTES = (
 
 async def seed_demo_data(session: AsyncSession) -> User:
     """Seed demo data if it does not yet exist. Returns the demo user."""
+    # Serialize concurrent demo logins, including first-time account creation.
+    await session.execute(text("SELECT pg_advisory_xact_lock(74190321)"))
+    from app.seed_demo_workspace import upgrade_demo_workspace
     existing = await session.scalar(select(User).where(User.email == DEMO_EMAIL))
     if existing is not None:
+        await upgrade_demo_workspace(session, existing)
+        await session.commit()
         return existing
 
     # ── 1. Demo user ──────────────────────────────────────────────────────────
@@ -407,6 +412,7 @@ async def seed_demo_data(session: AsyncSession) -> User:
                     created_at=day_dt + timedelta(hours=1 + k)
                 ))
 
+    await upgrade_demo_workspace(session, demo)
     await session.commit()
     await session.refresh(demo)
     return demo

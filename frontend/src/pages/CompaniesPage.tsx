@@ -1,21 +1,4 @@
-/**
- * Companies page.
- *
- * ── Pin persistence gap ──────────────────────────────────────────────────────
- * The backend `user_company` table has no `is_pinned` field. Per the prompt
- * rule ("flag this explicitly as a gap rather than faking it with local-only
- * state"), pinning is NOT implemented. A pin icon is shown on hover for UX
- * completeness, but clicking it shows a toast explaining the field is missing.
- * When the backend adds `is_pinned` to user_company, wire it here.
- *
- * ── Confetti flag ────────────────────────────────────────────────────────────
- * The backend has no `celebrated` field. We track a per-user-company-id set
- * in sessionStorage (not localStorage — intentionally per session so a reload
- * correctly re-evaluates, but a tab refresh doesn't re-fire on the same visit).
- * This satisfies "doesn't refire on every re-render" but WILL refire on a hard
- * reload if the session was cleared. A backend `celebrated_at` timestamp would
- * be the proper fix.
- */
+/** Company preparation library; role tracking lives in Applications. */
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -25,10 +8,9 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import axios from 'axios'
-import { Plus, Pin, ChevronRight, Building2 } from 'lucide-react'
+import { Plus, ChevronRight, Building2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -69,17 +51,6 @@ const addCompanySchema = z.object({
   cluster: z.enum(['FAANG', 'Product-based', 'Service-based', 'FinTech', 'Startups'] as const),
 })
 type AddCompanyForm = z.infer<typeof addCompanySchema>
-
-// ─── Status badge colors ──────────────────────────────────────────────────────
-const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'destructive' | 'secondary'> = {
-  'Not Started': 'secondary',
-  Researching: 'secondary',
-  Applied: 'warning',
-  'OA Received': 'warning',
-  'Interview Scheduled': 'warning',
-  'Offer Received': 'success',
-  Rejected: 'destructive',
-}
 
 export default function CompaniesPage() {
   const qc = useQueryClient()
@@ -130,7 +101,7 @@ export default function CompaniesPage() {
       return company
     },
     onSuccess: (company) => {
-      toast.success(`Added and tracking ${company.name}`)
+      toast.success(`Added ${company.name} to your preparation library`)
       qc.invalidateQueries({ queryKey: ['tracked-companies'] })
       setAddOpen(false)
       reset()
@@ -151,7 +122,7 @@ export default function CompaniesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Companies</h1>
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Company library</h1>
           <p className="text-sm text-[var(--text-muted)] mt-0.5">
             {data?.total ?? 0} tracked
           </p>
@@ -180,8 +151,8 @@ export default function CompaniesPage() {
       ) : data?.items.length === 0 ? (
         <EmptyState
           icon={<Building2 className="h-12 w-12" />}
-          title="No companies tracked yet"
-          description="Add your first company to start tracking your application progress."
+          title="Build your preparation library"
+          description="Add a company to organize its research and preparation checklist. Track roles separately in Applications."
           actionLabel="Add Company"
           onAction={() => setAddOpen(true)}
         />
@@ -220,7 +191,7 @@ export default function CompaniesPage() {
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => { setAddOpen(false); reset() }}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting || addMutation.isPending}>
-                {addMutation.isPending ? 'Adding…' : 'Add & Track'}
+                {addMutation.isPending ? 'Adding…' : 'Add to library'}
               </Button>
             </DialogFooter>
           </form>
@@ -232,39 +203,18 @@ export default function CompaniesPage() {
 
 // ─── Company card ─────────────────────────────────────────────────────────────
 function CompanyCard({ tc, navigate }: { tc: TrackedCompany; navigate: ReturnType<typeof useNavigate> }) {
-  const [hovered, setHovered] = useState(false)
 
   const daysLeft = tc.deadline
     ? differenceInCalendarDays(new Date(tc.deadline), new Date())
     : null
-
-  const handlePinClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    toast.info('Pin is not yet supported — the backend user_company table has no is_pinned field. This will be wired when the backend is updated.')
-  }
 
   return (
     <Card
       className={`cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg relative ${
         tc.checklist_progress_pct === 100 ? 'border-[var(--success)]/40' : ''
       }`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       onClick={() => navigate(`/companies/${tc.company_id}`)}
     >
-      {/* Pin icon — gap flagged, not functional */}
-      {hovered && (
-        <button
-          className="absolute top-3 right-3 text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-          onClick={handlePinClick}
-          title="Pin (not yet supported — backend field missing)"
-          aria-label="Pin company"
-        >
-          <Pin className="h-3.5 w-3.5" />
-        </button>
-      )}
-
       <CardContent className="pt-4 pb-4">
         <div className="flex items-start justify-between mb-3 pr-5">
           <div>
@@ -273,15 +223,13 @@ function CompanyCard({ tc, navigate }: { tc: TrackedCompany; navigate: ReturnTyp
             </p>
             <p className="text-xs text-[var(--text-muted)] mt-0.5">{tc.cluster}</p>
           </div>
-          <Badge variant={STATUS_VARIANT[tc.application_status] ?? 'secondary'} className="text-[10px] shrink-0">
-            {tc.application_status}
-          </Badge>
+
         </div>
 
         {/* Progress */}
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-[var(--text-muted)]">Readiness</span>
+            <span className="text-xs text-[var(--text-muted)]">Preparation</span>
             <span className={`text-xs font-medium ${
               tc.checklist_progress_pct === 100
                 ? 'text-[var(--success)]'

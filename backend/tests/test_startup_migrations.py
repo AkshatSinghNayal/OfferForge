@@ -16,6 +16,12 @@ class StartupMigrationTests(unittest.TestCase):
         self.assertEqual(revision, "head")
         self.assertTrue(config.config_file_name.endswith("alembic.ini"))
 
+    def test_failed_migration_is_not_stamped_as_success(self) -> None:
+        with patch("app.main.command.upgrade", side_effect=RuntimeError("migration failed")), patch("app.main.command.stamp") as stamp:
+            with self.assertRaises(RuntimeError):
+                _run_database_migrations()
+            stamp.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

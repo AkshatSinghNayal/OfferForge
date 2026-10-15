@@ -54,3 +54,5 @@ __all__ = [
     "NOTE_TYPES",
     "RESOURCE_CATEGORIES",
 ]
+
+from app.models.workspace import Application, PreparationTask

@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
 import {
-  FileText, BookOpen, Calendar, BarChart2, Settings,
+  Building2, StickyNote, BookOpen, Calendar, BarChart2, Settings,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 
 const MORE_ITEMS = [
-  { to: '/resumes',   icon: FileText,   label: 'Resumes' },
+  { to: '/companies', icon: Building2, label: 'Company library' },
+  { to: '/notes', icon: StickyNote, label: 'Notes' },
   { to: '/resources', icon: BookOpen,   label: 'Resources' },
   { to: '/calendar',  icon: Calendar,   label: 'Calendar' },
   { to: '/analytics', icon: BarChart2,  label: 'Analytics' },

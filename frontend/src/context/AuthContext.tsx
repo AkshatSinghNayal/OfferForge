@@ -17,6 +17,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@/api/auth'
 import { setAccessToken } from '@/api/client'
 import type { UserPublic } from '@/api/types'
@@ -38,6 +39,7 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -45,10 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   const login = useCallback((user: UserPublic, accessToken: string) => {
+    queryClient.clear()
     bootstrapPromise = null
     setAccessToken(accessToken)
     setState({ user, isAuthenticated: true, isLoading: false })
-  }, [])
+  }, [queryClient])
 
   const logout = useCallback(async () => {
     try {
@@ -56,10 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Best effort — clear local state regardless.
     }
+    queryClient.clear()
     bootstrapPromise = null
     setAccessToken(null)
     setState({ user: null, isAuthenticated: false, isLoading: false })
-  }, [])
+  }, [queryClient])
 
   // Bootstrap: attempt a silent refresh on first load.
   useEffect(() => {
@@ -95,13 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // when a refresh fails mid-session.
   useEffect(() => {
     const handleForcedLogout = () => {
+      queryClient.clear()
       bootstrapPromise = null
       setAccessToken(null)
       setState({ user: null, isAuthenticated: false, isLoading: false })
     }
     window.addEventListener('auth:logout', handleForcedLogout)
     return () => window.removeEventListener('auth:logout', handleForcedLogout)
-  }, [])
+  }, [queryClient])
 
   return (
     <AuthContext.Provider value={{ ...state, login, logout }}>

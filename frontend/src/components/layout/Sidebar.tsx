@@ -1,6 +1,7 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
+  BriefcaseBusiness,
   Building2,
   Code2,
   FileText,
@@ -18,18 +19,44 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip'
 
 export const NAV_ITEMS = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/companies', icon: Building2,       label: 'Companies' },
-  { to: '/dsa',       icon: Code2,           label: 'DSA Tracker' },
-  { to: '/resumes',   icon: FileText,        label: 'Resumes' },
-  { to: '/resources', icon: BookOpen,        label: 'Resources' },
-  { to: '/notes',     icon: StickyNote,      label: 'Notes' },
-  { to: '/calendar',  icon: Calendar,        label: 'Calendar' },
-  { to: '/analytics', icon: BarChart2,       label: 'Analytics' },
-  { to: '/settings',  icon: Settings,        label: 'Settings' },
+  {
+    to: '/dashboard',
+    icon: LayoutDashboard,
+    label: 'Today',
+    group: 'Workspace',
+  },
+  {
+    to: '/applications',
+    icon: BriefcaseBusiness,
+    label: 'Applications',
+    group: 'Workspace',
+  },
+  {
+    to: '/companies',
+    icon: Building2,
+    label: 'Company library',
+    group: 'Preparation',
+  },
+  { to: '/dsa', icon: Code2, label: 'Practice', group: 'Preparation' },
+  { to: '/resumes', icon: FileText, label: 'Resumes', group: 'Preparation' },
+  {
+    to: '/resources',
+    icon: BookOpen,
+    label: 'Resources',
+    group: 'Preparation',
+  },
+  { to: '/notes', icon: StickyNote, label: 'Notes', group: 'Preparation' },
+  { to: '/calendar', icon: Calendar, label: 'Calendar', group: 'Workspace' },
+  { to: '/analytics', icon: BarChart2, label: 'Analytics', group: 'Insights' },
+  { to: '/settings', icon: Settings, label: 'Settings', group: 'Account' },
 ]
 
 interface SidebarProps {
@@ -41,6 +68,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onCollapse, onNavigate }: SidebarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
 
   const handleLogout = async () => {
     await logout()
@@ -48,7 +76,12 @@ export function Sidebar({ collapsed, onCollapse, onNavigate }: SidebarProps) {
   }
 
   const initials = user?.full_name
-    ? user.full_name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+    ? user.full_name
+        .split(' ')
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
     : '?'
 
   return (
@@ -58,7 +91,7 @@ export function Sidebar({ collapsed, onCollapse, onNavigate }: SidebarProps) {
           'fixed left-0 top-0 h-screen flex flex-col z-40',
           'transition-[width] duration-200 ease-out',
           'border-r border-[var(--border)]',
-          collapsed ? 'w-14' : 'w-52',
+          collapsed ? 'w-14' : 'w-[232px]',
         )}
         style={{ background: 'var(--sidebar)' }}
         aria-label="Main navigation"
@@ -72,16 +105,16 @@ export function Sidebar({ collapsed, onCollapse, onNavigate }: SidebarProps) {
         >
           {!collapsed && (
             <div className="flex items-center gap-2 min-w-0">
-              <div className="h-6 w-6 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+              <div className="h-6 w-6 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0 ">
                 <Zap className="h-3.5 w-3.5 text-white" fill="currentColor" />
               </div>
-              <span className="text-sm font-bold gradient-text truncate tracking-tight">
+              <span className="text-sm font-bold text-[var(--text-primary)] truncate tracking-tight">
                 OfferForge
               </span>
             </div>
           )}
           {collapsed && (
-            <div className="h-6 w-6 rounded-lg bg-[var(--accent)] flex items-center justify-center shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+            <div className="h-6 w-6 rounded-lg bg-[var(--accent)] flex items-center justify-center ">
               <Zap className="h-3.5 w-3.5 text-white" fill="currentColor" />
             </div>
           )}
@@ -119,37 +152,53 @@ export function Sidebar({ collapsed, onCollapse, onNavigate }: SidebarProps) {
 
         {/* Nav */}
         <nav className="flex flex-col gap-0.5 flex-1 px-2 py-3 overflow-y-auto overflow-x-hidden">
-          {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-            <Tooltip key={to}>
-              <TooltipTrigger asChild>
-                <NavLink
-                  to={to}
-                  onClick={onNavigate}
-                  className={({ isActive }) =>
-                    cn(
-                      'relative flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-all duration-150',
-                      isActive
-                        ? 'nav-active-bar bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
-                        : 'text-[var(--text-muted)] hover:bg-[var(--card)] hover:text-[var(--text-primary)]',
-                    )
-                  }
-                  aria-label={collapsed ? label : undefined}
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Icon
+          {['Workspace', 'Preparation', 'Insights', 'Account'].map((group) => (
+            <div
+              key={group}
+              className={group === 'Account' ? 'mt-auto pt-5' : 'mb-4'}
+            >
+              {!collapsed && (
+                <p className="px-2 mb-2 mt-2 text-[10px] font-medium tracking-widest uppercase text-[var(--text-muted)]">
+                  {group}
+                </p>
+              )}
+              {NAV_ITEMS.filter((item) => item.group === group).map(
+                ({ to, icon: Icon, label }) => (
+                  <Tooltip key={to}>
+                    <TooltipTrigger asChild>
+                      <NavLink
+                        to={to}
+                        onClick={onNavigate}
                         className={cn(
-                          'h-4 w-4 shrink-0 transition-colors',
-                          isActive ? 'text-[var(--accent)]' : '',
+                          'relative flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-all duration-150',
+                          pathname === to || pathname.startsWith(to + '/')
+                            ? 'nav-active-bar bg-[var(--accent)]/10 text-[var(--accent)] font-medium'
+                            : 'text-[var(--text-muted)] hover:bg-[var(--card)] hover:text-[var(--text-primary)]',
                         )}
-                      />
-                      {!collapsed && <span className="truncate">{label}</span>}
-                    </>
-                  )}
-                </NavLink>
-              </TooltipTrigger>
-              {collapsed && <TooltipContent side="right">{label}</TooltipContent>}
-            </Tooltip>
+                        aria-label={collapsed ? label : undefined}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Icon
+                              className={cn(
+                                'h-4 w-4 shrink-0 transition-colors',
+                                isActive ? 'text-[var(--accent)]' : '',
+                              )}
+                            />
+                            {!collapsed && (
+                              <span className="truncate">{label}</span>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    </TooltipTrigger>
+                    {collapsed && (
+                      <TooltipContent side="right">{label}</TooltipContent>
+                    )}
+                  </Tooltip>
+                ),
+              )}
+            </div>
           ))}
         </nav>
 

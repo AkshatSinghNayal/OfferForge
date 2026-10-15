@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.security import hash_password, verify_password
 
 from app.core.config import settings
 from app.core.cookies import (
@@ -18,8 +20,10 @@ from app.core.cookies import (
 )
 from app.core.deps import get_current_user
 from app.db.session import get_async_session
-from app.models.user import User
+from app.models.user import User, RefreshToken, PasswordResetToken
 from app.schemas.auth import (
+    ProfileUpdate,
+    PasswordChange,
     LoginRequest,
     MessageResponse,
     PasswordResetConfirm,
@@ -286,3 +290,25 @@ async def password_reset_confirm(
     except UserInactiveError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return MessageResponse(message="password updated")
+
+
+@router.patch('/profile', response_model=UserPublic)
+async def update_profile(body: ProfileUpdate, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_async_session)):
+    user.full_name = body.full_name
+    await session.commit()
+    await session.refresh(user)
+    return _user_to_public(user)
+
+
+@router.post('/password', response_model=MessageResponse)
+async def change_password(body: PasswordChange, response: Response, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_async_session)):
+    if not user.hashed_password or not await verify_password(body.current_password, user.hashed_password):
+        raise HTTPException(400, 'Current password is incorrect. Google-only accounts manage passwords through Google.')
+    if len(body.new_password.encode('utf-8')) > 72:
+        raise HTTPException(422, 'Password must be at most 72 UTF-8 bytes.')
+    user.hashed_password = await hash_password(body.new_password)
+    await session.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
+    await session.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
+    await session.commit()
+    clear_refresh_cookie(response)
+    return MessageResponse(message='Password updated. Sign in again with your new password.')

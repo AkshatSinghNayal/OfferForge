@@ -86,3 +86,13 @@ class GoogleUserInfo(BaseModel):
     sub: str
     email: EmailStr
     name: str | None = None
+
+
+class ProfileUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    full_name: str = Field(min_length=1, max_length=120)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=72)

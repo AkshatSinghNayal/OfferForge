@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
-  LayoutDashboard, Building2, Code2, StickyNote, Grid3x3,
+  LayoutDashboard, BriefcaseBusiness, Code2, FileText, Grid3x3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sidebar } from './Sidebar'
@@ -11,10 +11,10 @@ import { CommandPalette } from './CommandPalette'
 const SIDEBAR_KEY = 'sidebar_collapsed'
 
 const BOTTOM_NAV = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-  { to: '/dsa',       icon: Code2,           label: 'DSA' },
-  { to: '/companies', icon: Building2,       label: 'Companies' },
-  { to: '/notes',     icon: StickyNote,      label: 'Notes' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Today' },
+  { to: '/applications', icon: BriefcaseBusiness, label: 'Apply' },
+  { to: '/dsa', icon: Code2, label: 'Practice' },
+  { to: '/resumes', icon: FileText, label: 'Resumes' },
   { to: '/more',      icon: Grid3x3,         label: 'More' },
 ]
 
@@ -33,7 +33,7 @@ export function AppLayout() {
   // Update the CSS custom property on :root so .topbar-push and .content-push
   // both respond to sidebar collapse/expand at any breakpoint via pure CSS.
   useEffect(() => {
-    const w = collapsed ? '56px' : '208px'
+    const w = collapsed ? '56px' : '232px'
     document.documentElement.style.setProperty('--sidebar-width', w)
   }, [collapsed])
 
@@ -63,7 +63,7 @@ export function AppLayout() {
         />
 
         <main className="flex-1 mt-14 overflow-y-auto overflow-x-hidden pb-16 md:pb-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 animate-fade-in">
+          <div className="max-w-7xl mx-auto px-4 sm:px-7 lg:px-9 py-7 lg:py-9 animate-fade-in">
             <Outlet />
           </div>
         </main>
