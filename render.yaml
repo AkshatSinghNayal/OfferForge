@@ -64,9 +64,9 @@ services:
         sync: false           # paste the Google AI Studio key; never commit it
 
       - key: GEMINI_MODEL
-        value: gemini-3.7-flash
+        value: gemini-flash-latest
       - key: GEMINI_FALLBACK_MODEL
-        value: gemini-3.5-flash
+        value: gemini-flash-lite-latest
 
       - key: CLOUDINARY_CLOUD_NAME
         sync: false

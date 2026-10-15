@@ -70,8 +70,8 @@ placed in a `VITE_*` frontend variable.
 
 ```env
 GEMINI_API_KEY=your_complete_key
-GEMINI_MODEL=gemini-3.7-flash
-GEMINI_FALLBACK_MODEL=gemini-3.5-flash
+GEMINI_MODEL=gemini-flash-latest
+GEMINI_FALLBACK_MODEL=gemini-flash-lite-latest
 ```
 
 After a resume is uploaded, paste a job description to receive an estimated
@@ -108,3 +108,20 @@ frontend/
 ## License
 
 [MIT](LICENSE)
+
+### AI analysis reliability
+
+The backend discovers currently available Gemini text-generation models instead
+of relying only on fixed version names. It prioritizes configured models, then
+tries up to four general-purpose Flash candidates. Model-specific quota,
+unavailability, and access errors move to the next candidate; temporary service
+errors and malformed responses get one retry. Schema compatibility errors can
+retry with an explicit JSON format prompt.
+
+Optionally set `GEMINI_BACKUP_API_KEY` in the backend environment to use a second
+credential if the primary key fails. Keys in the same Google project may share
+quota. All discovery and generation attempts share `GEMINI_TIMEOUT_SECONDS`
+(default 45 seconds, capped at 50), below the frontend's 60-second timeout.
+Errors do not expose raw provider responses or fabricate a match score. An
+invalid PDF, unavailable service, or exhausted quota on all credentials can
+still prevent analysis. Existing saved analyses remain available.

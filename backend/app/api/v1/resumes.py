@@ -282,7 +282,7 @@ async def analyze_job_match(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=str(exc),
-            headers={"Retry-After": "3600"},
+            headers={"Retry-After": str(exc.retry_after)},
         )
     except GeminiAnalysisError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
