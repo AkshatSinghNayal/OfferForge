@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ArrowUpRight } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -72,7 +73,7 @@ export default function LoginPage() {
   return (
     <AuthCard
       title="Welcome back"
-      description="Sign in to your account"
+      description="Pick up where you left off. Your workspace is ready."
     >
       {/* Demo Login — same outline style as Google button */}
       <Button
@@ -100,7 +101,7 @@ export default function LoginPage() {
           </>
         ) : (
           <>
-            <span className="text-base leading-none">🔑</span>
+            <ArrowUpRight size={16} />
             Access with Demo Account
           </>
         )}

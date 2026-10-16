@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import logo from '@/assets/logo.png'
+import { Command, Zap } from 'lucide-react'
+import { AuthProductTour } from './AuthProductTour'
 
 interface AuthCardProps {
   title: string
@@ -10,44 +10,27 @@ interface AuthCardProps {
 
 export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
-    <div
-      className="relative flex min-h-screen items-center justify-center p-4 overflow-hidden bg-dot-grid"
-      style={{ background: 'var(--bg)' }}
-    >
-      {/* Ambient glow orbs */}
-      <div
-        className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full opacity-20 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #3b82f6, transparent 70%)' }}
-      />
-      <div
-        className="pointer-events-none absolute -bottom-32 -right-32 h-80 w-80 rounded-full opacity-15 blur-3xl"
-        style={{ background: 'radial-gradient(circle, #a78bfa, transparent 70%)' }}
-      />
-
-      <div className="relative w-full max-w-sm animate-scale-in">
-        {/* Brand */}
-        <div className="flex flex-col items-center mb-8 gap-3">
-          <div className="relative">
-            <img
-              src={logo}
-              alt="OfferForge"
-              className="h-16 w-16 rounded-2xl object-cover shadow-[0_0_24px_rgba(59,130,246,0.35)]"
-            />
-          </div>
-          <div className="text-center">
-            <span className="text-xl font-bold gradient-text tracking-tight">OfferForge</span>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">Placement prep, organised.</p>
-          </div>
+    <main className="auth-shell">
+      <section className="auth-story" aria-label="About OfferForge">
+        <a href="/login" className="auth-wordmark"><span><Zap size={20} fill="currentColor" /></span>OfferForge<span className="auth-wordmark-tag">YOUR CAREER WORKSPACE</span></a>
+        <div className="auth-story-content">
+          <p className="auth-kicker"><span /> A LITTLE MORE INTENTION. A LOT MORE PROGRESS.</p>
+          <h2>Your next chapter.<br /><span>Already in motion.</span></h2>
+          <p className="auth-story-description">Bring your applications, preparation, and progress together. Make room for the work that moves you forward.</p>
+          <AuthProductTour />
+          <div className="auth-story-features"><span>Track opportunities</span><i /><span>Prepare with purpose</span><i /><span>See your progress</span></div>
         </div>
-
-        <Card className="glass border-[var(--border)] shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]">
-          <CardHeader className="space-y-1 text-center pb-4">
-            <CardTitle className="text-xl">{title}</CardTitle>
-            {description && <CardDescription>{description}</CardDescription>}
-          </CardHeader>
-          <CardContent>{children}</CardContent>
-        </Card>
-      </div>
-    </div>
+        <footer className="auth-story-footer"><span>Less scattered. More focused.</span><Command size={15} /></footer>
+      </section>
+      <section className="auth-form-panel" aria-labelledby="auth-title">
+        <div className="auth-form-content">
+          <div className="auth-form-mark" aria-hidden="true"><Zap size={22} /></div>
+          <header className="auth-form-heading"><p className="auth-kicker">YOUR NEXT STEP STARTS HERE</p><h1 id="auth-title">{title}<span>.</span></h1>{description && <p>{description}</p>}</header>
+          {children}
+          <p className="auth-form-footnote">Your applications. Your preparation. Your pace.</p>
+        </div>
+        <div className="auth-form-footer">Built for your next opportunity <span>OfferForge</span></div>
+      </section>
+    </main>
   )
 }
