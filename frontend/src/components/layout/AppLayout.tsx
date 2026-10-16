@@ -63,7 +63,7 @@ export function AppLayout() {
         />
 
         <main className="flex-1 mt-14 overflow-y-auto overflow-x-hidden pb-16 md:pb-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-7 lg:px-9 py-7 lg:py-9 animate-fade-in">
+          <div className="mobile-page-content max-w-7xl mx-auto px-4 sm:px-7 lg:px-9 py-7 lg:py-9 animate-fade-in">
             <Outlet />
           </div>
         </main>
@@ -71,7 +71,7 @@ export function AppLayout() {
 
       {/* Mobile bottom nav */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--border)] flex items-center justify-around px-1 h-16"
+        className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--border)] flex items-center justify-around px-1 h-16"
         style={{ background: 'var(--card)' }}
         aria-label="Mobile navigation"
       >

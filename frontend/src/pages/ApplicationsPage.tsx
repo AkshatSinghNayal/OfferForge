@@ -356,8 +356,8 @@ export default function ApplicationsPage() {
                       {app.stage}
                     </span>
                   </td>
-                  <td>{app.next_action || 'Set a next step'}</td>
-                  <td className="whitespace-nowrap">
+                  <td data-label="Next action">{app.next_action || 'Set a next step'}</td>
+                  <td data-label="Deadline" className="whitespace-nowrap">
                     {app.deadline
                       ? format(parseISO(app.deadline), 'MMM d, yyyy')
                       : '—'}

@@ -258,7 +258,7 @@ export default function DSAPage() {
 
       {/* Topic progress bars */}
       {stats && stats.topic_wise.length > 0 && (
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="practice-topics flex gap-4 overflow-x-auto pb-2">
           {[...stats.topic_wise].sort((a, b) => b.pct - a.pct).slice(0, 8).map(t => (
             <div key={t.tag} className="min-w-[120px]">
               <div className="flex justify-between text-xs mb-1">
@@ -273,7 +273,7 @@ export default function DSAPage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      <div className="practice-filters flex flex-wrap gap-2">
         <FilterSelect value={platform} onChange={v => setFilter('platform', v)}
           options={['', 'LeetCode', 'GFG', 'Codeforces']} placeholder="All Platforms" />
         <FilterSelect value={difficulty} onChange={v => setFilter('difficulty', v)}
@@ -292,7 +292,7 @@ export default function DSAPage() {
 
       {/* Table — scrollable on mobile */}
       <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-        <table className="w-full text-sm">
+        <table className="practice-table w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--border)]" style={{ background: 'var(--card)' }}>
               <th className="text-left p-3 text-xs font-medium text-[var(--text-muted)] w-8">Done</th>
@@ -329,6 +329,7 @@ export default function DSAPage() {
                 >
                   <td className="p-3">
                     <Checkbox
+                      aria-label={`Mark ${p.title} as ${p.status === 'Solved' ? 'unsolved' : 'solved'}`}
                       checked={p.status === 'Solved'}
                       onCheckedChange={() => toggleStatus(p.id, p.status)}
                     />
