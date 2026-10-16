@@ -1,9 +1,9 @@
 /**
  * GoogleCallbackPage — handles the redirect from the backend after OAuth.
  *
- * The backend redirects to /auth/google/callback?success=1 with the
- * refresh token already set as an httpOnly cookie. We just need to call
- * POST /auth/refresh to exchange the cookie for an access token.
+ * The backend supplies an access token and sets an httpOnly refresh cookie.
+ * This page owns session establishment; AuthProvider skips its bootstrap here.
+ * Older callbacks without an access token use the refresh cookie instead.
  */
 import { useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -25,6 +25,8 @@ export default function GoogleCallbackPage() {
 
     const token = searchParams.get('token')
     const success = searchParams.get('success')
+    // Remove the credential before loading profile data or navigating elsewhere.
+    window.history.replaceState(null, '', window.location.pathname)
 
     if (success !== '1' && !token) {
       toast.error('Google sign-in failed.')
@@ -42,6 +44,7 @@ export default function GoogleCallbackPage() {
           navigate('/dashboard', { replace: true })
         })
         .catch(() => {
+          setAccessToken(null)
           toast.error('Failed to complete sign-in. Please try again.')
           navigate('/login', { replace: true })
         })

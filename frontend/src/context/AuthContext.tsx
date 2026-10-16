@@ -15,6 +15,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -40,6 +41,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const authRevision = useRef(0)
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   const login = useCallback((user: UserPublic, accessToken: string) => {
+    authRevision.current += 1
     queryClient.clear()
     bootstrapPromise = null
     setAccessToken(accessToken)
@@ -54,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient])
 
   const logout = useCallback(async () => {
+    authRevision.current += 1
     try {
       await authApi.logout()
     } catch {
@@ -67,7 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Bootstrap: attempt a silent refresh on first load.
   useEffect(() => {
+    // The callback owns session establishment. A concurrent cookie refresh can
+    // fail on cross-site deployments and erase the freshly issued OAuth token.
+    if (window.location.pathname === '/auth/google/callback') return
     let cancelled = false
+    const revision = authRevision.current
 
     const bootstrap = async () => {
       try {
@@ -78,11 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           bootstrapPromise = Promise.race([authApi.refresh(), timeoutPromise])
         }
         const data = await bootstrapPromise
-        if (cancelled) return
+        if (cancelled || revision !== authRevision.current) return
         setAccessToken(data.access_token)
         setState({ user: data.user, isAuthenticated: true, isLoading: false })
       } catch {
-        if (cancelled) return
+        if (cancelled || revision !== authRevision.current) return
         bootstrapPromise = null
         setAccessToken(null)
         setState({ user: null, isAuthenticated: false, isLoading: false })
@@ -99,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // when a refresh fails mid-session.
   useEffect(() => {
     const handleForcedLogout = () => {
+      authRevision.current += 1
       queryClient.clear()
       bootstrapPromise = null
       setAccessToken(null)
